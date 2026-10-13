@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>元素カードゲーム</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#050914;color:#e8ecf4;font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:14px}
+#app{max-width:1100px;margin:0 auto;padding:8px}
+.top{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.pl{border:2px solid #223052;border-radius:8px;padding:6px;min-height:92px}
+.pl.on{border-color:#00E5FF;box-shadow:0 0 8px #00E5FF55}
+.pl h3{margin:0 0 4px;font-size:14px;display:flex;justify-content:space-between}
+.row{margin:2px 0;font-size:12px;line-height:1.7}
+.ch{display:inline-block;border:1px solid var(--c,#667);color:var(--c,#ccd);border-radius:4px;padding:0 4px;margin:1px;font-weight:700}
+.cp{background:#16254a;border-radius:4px;padding:0 4px;margin:1px;display:inline-block}
+.msg{min-height:22px;margin:6px 2px;color:#FFEB3B}
+.board{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:4px}
+.slot{aspect-ratio:3/4}
+.card{width:100%;aspect-ratio:3/4;border-radius:6px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.back{background:#14213d;border:2px solid #2a3c6b;cursor:pointer}
+.face{background:#0c1426;border:2px solid var(--c);color:var(--c);gap:1px}
+.face b{font-size:calc(var(--cw)*.42);line-height:1}
+.face i{font-style:normal;font-size:calc(var(--cw)*.17);color:#e8ecf4}
+.face small{font-size:max(6px,calc(var(--cw)*.12))}
+.act{margin:10px 0;padding:8px;border-top:1px solid #223052;text-align:center}
+button.b{background:#00E5FF;color:#050914;border:0;border-radius:6px;padding:10px 16px;margin:4px;font-size:15px;font-weight:700}
+button.b.g{background:#2a3c6b;color:#e8ecf4}
+button.b:disabled{opacity:.35}
+.ov{position:fixed;inset:0;background:#050914cc;display:flex;align-items:center;justify-content:center;padding:12px}
+.md{background:#0c1426;border:2px solid #2a3c6b;border-radius:10px;padding:14px;max-width:460px;width:100%;max-height:90vh;overflow:auto}
+.md button.ch{background:none;font-size:16px;padding:6px 10px;margin:4px}
+.md button.ch.sel{background:var(--c);color:#050914}
+table{width:100%;border-collapse:collapse;text-align:center}
+td,th{border-bottom:1px solid #223052;padding:4px}
+</style></head><body><div id="app"></div>
+<script>
+// ===== 設定データ(ノーマル)※難易度を増やすときはこのCONFIGを差し替える =====
+const CONFIG={
+  name:'ノーマル',
+  copies:4,          // 各元素の枚数
+  firstBonus:1,      // 先攻の補正点
+  leftoverIsJunk:true, // 【仮】終了時に使わず残った元素ペアをカス扱いにする(仕様に記載なしのため)
+  elements:[ // 記号, 名前, 属性タグ, 色
+    ['H','水素','LIFE/LIGHT','#00E5FF'],['O','酸素','LIFE/WIND','#00E5FF'],['N','窒素','LIFE/WISDOM','#00E5FF'],
+    ['C','炭素','EARTH/BASE','#9D4EDD'],['Fe','鉄','METAL/POWER','#FFB300'],['Si','ケイ素','CRYSTAL/TECH','#7B7BFF'],
+    ['Cu','銅','METAL/TECH','#E07A3F'],['Zn','亜鉛','GUARD/TECH','#FF007F'],['Na','ナトリウム','ALKALI/SALT','#FF8A65'],
+    ['Cl','塩素','HALOGEN/AIR','#76FF03'],['Ca','カルシウム','BONE/BASE','#ECEFF1'],['S','硫黄','MINERAL/POWER','#FFEB3B'],
+    ['Al','アルミニウム','METAL/LIGHT','#B0BEC5']],
+  compounds:{ // r=必要な元素ペア, p=基本点
+    '水':{r:['H','O'],p:3},'二酸化炭素':{r:['C','O'],p:4},'アンモニア':{r:['N','H'],p:4},
+    '鋼鉄':{r:['Fe','C'],p:6},'ガラス':{r:['Si','O'],p:5},'真鍮':{r:['Cu','Zn'],p:6},
+    '食塩':{r:['Na','Cl'],p:4},'石灰石':{r:['Ca','C'],p:4},'硫酸':{r:['S','H'],p:5},
+    'ジュラルミン':{r:['Al','Cu'],p:6}},
+  yaku:[ // need=必要な化合物, distinct=異なる化合物の種類数, b=役ボーナス
+    {n:'生命の水',need:{'水':2},b:5},{n:'空気の循環',need:{'水':1,'二酸化炭素':1},b:6},
+    {n:'海の恵み',need:{'水':1,'食塩':1},b:6},{n:'工業の第一歩',need:{'鋼鉄':1,'ガラス':1},b:7},
+    {n:'合金職人',need:{'鋼鉄':1,'真鍮':1},b:8},{n:'空飛ぶ金属',need:{'ジュラルミン':1,'鋼鉄':1},b:8},
+    {n:'工業革命',need:{'鋼鉄':1,'ガラス':1,'真鍮':1},b:10},{n:'完全錬成',distinct:5,b:12}],
+  junk:[[36,3],[24,2],[12,1]] // [カス枚数以上, 点]
+};
+// ===== ゲーム本体 =====
+const C=CONFIG,E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});
+const $=id=>document.getElementById(id);
+let G;
+function newGame(){
+  const d=[];C.elements.forEach(e=>{for(let k=0;k<C.copies;k++)d.push(e[0])});
+  for(let i=d.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[d[i],d[j]]=[d[j],d[i]]}
+  const mk=n=>({n,pairs:{},comps:{},used:{},yakus:[],pend:null,cand:null,junk:0,cp:0,yp:0,jp:0});
+  const f=Math.random()<.5?0:1;
+  G={b:d.map(e=>({e,s:'down'})),p:[mk('プレイヤー1'),mk('プレイヤー2')],cur:f,first:f,ph:'pick',sel:[],lock:false,msg:'',fz:null,over:false};
+  render();
+}
+function flip(i){
+  if(G.lock||G.ph!=='pick'||G.b[i].s!=='down')return;
+  G.b[i].s='up';G.sel.push(i);
+  if(G.sel.length<2){render();return}
+  G.lock=true;render(); // 2枚めくったら、表示が終わるまで他のカードは触れない
+  const[a,b]=G.sel,p=G.p[G.cur];
+  if(G.b[a].e===G.b[b].e){
+    setTimeout(()=>{const e=G.b[a].e;G.b[a].s=G.b[b].s='taken';
+      p.pairs[e]=(p.pairs[e]||0)+1;G.sel=[];G.lock=false;G.ph='choice';G.msg=E[e].n+'のペア成立!';render()},800);
+  }else{
+    setTimeout(()=>{G.b[a].s=G.b[b].s='down';G.sel=[];G.lock=false;
+      let m='ペアではありません。';
+      if(p.pend){m+=`こいこい失敗:「${p.pend.n}」の+${p.pend.b}点を失いました。`;p.pend=null} // 【仮】使った化合物は戻らない
+      G.msg=m;turnEnd()},1300);
+  }
+}
+function turnEnd(){
+  if(!G.b.some(c=>c.s==='down')){finish();return}
+  G.cur=1-G.cur;G.ph='pick';render();
+}
+function go(){ if(!G.b.some(c=>c.s==='down')){finish();return} G.ph='pick';G.msg='';render() }
+function openFz(){G.fz={sel:[],fail:false};render()}
+function pickFz(s){const a=G.fz.sel,i=a.indexOf(s);
+  if(i>=0)a.splice(i,1);else if(a.length<2)a.push(s);G.fz.fail=false;render()}
+function doFz(){
+  const p=G.p[G.cur],[a,b]=G.fz.sel;
+  const k=Object.keys(C.compounds).find(k=>{const r=C.compounds[k].r;return r.includes(a)&&r.includes(b)});
+  if(!k){G.fz.fail=true;render();return} // 失敗は確認画面を出してから確定
+  p.pairs[a]--;p.pairs[b]--;p.comps[k]=(p.comps[k]||0)+1;p.cp+=C.compounds[k].p;
+  G.fz=null;G.msg=`${k}を作りました +${C.compounds[k].p}点`;
+  const y=findYaku(p);
+  if(y){ if(p.pend)confirmPend(p); // こいこい中に別の役→直前の役を確定
+    for(const c in y.use)p.used[c]=(p.used[c]||0)+y.use[c];
+    p.cand=y.y;G.ph='yaku'}
+  render();
+}
+function failFz(){ // 【仮】失敗した2ペア(4枚)はカスになる
+  const p=G.p[G.cur],[a,b]=G.fz.sel;p.pairs[a]--;p.pairs[b]--;p.junk+=4;
+  G.fz=null;G.msg='融合に失敗。使ったペアはカスになりました';render()}
+function findYaku(p){
+  const av=k=>(p.comps[k]||0)-(p.used[k]||0);
+  for(const y of [...C.yaku].sort((x,z)=>z.b-x.b)){
+    if(y.distinct){const ks=Object.keys(C.compounds).filter(k=>av(k)>0);
+      if(ks.length>=y.distinct)return{y,use:ks.slice(0,y.distinct).reduce((o,k)=>(o[k]=1,o),{})}}
+    else if(Object.keys(y.need).every(k=>av(k)>=y.need[k]))return{y,use:y.need};
+  }
+  return null;
+}
+function confirmPend(p){p.yp+=p.pend.b;p.yakus.push(p.pend.n);p.pend=null}
+function agari(){const p=G.p[G.cur];p.yp+=p.cand.b;p.yakus.push(p.cand.n);
+  G.msg=`あがり!「${p.cand.n}」+${p.cand.b}点を確定`;p.cand=null;turnEnd()}
+function koikoi(){const p=G.p[G.cur];p.pend=p.cand;p.cand=null;G.ph='choice';
+  G.msg=`こいこい!次のペア取りに失敗すると「${p.pend.n}」を失います`;render()}
+function finish(){
+  G.p.forEach(p=>{
+    if(p.pend)confirmPend(p); // 【仮】こいこい中に終了した場合は確定
+    if(C.leftoverIsJunk)for(const e in p.pairs)p.junk+=2*p.pairs[e];
+    p.jp=(C.junk.find(([n])=>p.junk>=n)||[0,0])[1]});
+  G.over=true;render();
+}
+const sc=(p,i)=>p.cp+p.yp+(i===G.first?C.firstBonus:0)+(G.over?p.jp:0);
+// ===== 表示 =====
+function panel(p,i){
+  const pr=Object.entries(p.pairs).filter(([,n])=>n>0).map(([s,n])=>`<span class=ch style="--c:${E[s].c}">${s}×${n}</span>`).join('')||'なし';
+  const cm=Object.entries(p.comps).map(([k,n])=>`<span class=cp>${k}×${n}</span>`).join('')||'なし';
+  const yk=p.yakus.concat(p.pend?[p.pend.n+'(保留)']:[]).join('、')||'なし';
+  return `<div class="pl ${i===G.cur&&!G.over?'on':''}"><h3><span>${p.n}${i===G.first?'(先攻)':''}</span><span>${sc(p,i)}点</span></h3>
+  <div class=row>元素:${pr}</div><div class=row>化合物:${cm}</div><div class=row>役:${yk}</div><div class=row>カス:${p.junk}枚</div></div>`;
+}
+function card(c,i){
+  if(c.s==='taken')return'<div class=slot></div>';
+  if(c.s==='down')return`<button class="card back" onclick="flip(${i})" aria-label="裏向きのカード"></button>`;
+  const e=E[c.e];return`<div class="card face" style="--c:${e.c}"><b>${e.s}</b><i>${e.n}</i><small>${e.t}</small></div>`;
+}
+function act(){
+  const p=G.p[G.cur];if(G.over)return'';
+  if(G.ph==='pick')return`${p.n}の手番:裏向きのカードを2枚めくってください`;
+  if(G.ph==='yaku')return`<div>役「${p.cand.n}」が完成!(+${p.cand.b}点)</div><button class=b onclick=agari()>あがり</button><button class="b g" onclick=koikoi()>こいこい</button>`;
+  const can=Object.values(p.pairs).filter(n=>n>0).length>=2;
+  const end=!G.b.some(c=>c.s==='down');
+  return`<button class=b onclick=go()>${end?'ゲームを終了する':'続けてめくる'}</button><button class="b g" onclick=openFz() ${can?'':'disabled'}>融合する</button>`;
+}
+function modal(){
+  if(G.over){
+    const [a,b]=G.p,r=(l,f)=>`<tr><td>${l}</td><td>${f(a,0)}</td><td>${f(b,1)}</td></tr>`;
+    const s0=sc(a,0),s1=sc(b,1),w=s0===s1?'引き分け':(s0>s1?a.n:b.n)+'の勝ち!';
+    return`<div class=ov><div class=md><h2 style="margin-top:0">${w}</h2><table><tr><th></th><th>${a.n}</th><th>${b.n}</th></tr>
+    ${r('化合物点',p=>p.cp)}${r('役ボーナス',p=>p.yp)}${r('カス点('+'枚数)',p=>p.jp+'点('+p.junk+'枚)')}
+    ${r('先攻補正点',(p,i)=>i===G.first?C.firstBonus:0)}${r('合計',(p,i)=>'<b>'+sc(p,i)+'</b>')}</table>
+    <div style="text-align:center"><button class=b onclick=newGame()>もう一度遊ぶ</button></div></div></div>`;}
+  if(G.fz){const p=G.p[G.cur],f=G.fz;
+    const ch=Object.entries(p.pairs).filter(([,n])=>n>0).map(([s,n])=>`<button class="ch ${f.sel.includes(s)?'sel':''}" style="--c:${E[s].c}" onclick="pickFz('${s}')">${s}×${n}</button>`).join('');
+    const body=f.fail
+      ?`<p style="color:#FF007F">この組み合わせはレシピにありません。融合すると失敗し、2ペアがカスになります。</p><button class="b g" onclick="G.fz.fail=false;render()">選び直す</button><button class=b onclick=failFz()>失敗を確定</button>`
+      :`<button class=b onclick=doFz() ${f.sel.length===2?'':'disabled'}>融合する</button><button class="b g" onclick="G.fz=null;render()">やめる</button>`;
+    return`<div class=ov><div class=md><h3 style="margin-top:0">使うペアを2つ選んでください</h3>${ch}<div style="margin-top:8px">${body}</div></div></div>`;}
+  return'';
+}
+function render(){
+  const cols=Math.max(4,Math.min(13,Math.floor((innerWidth-16)/58)));
+  const cw=(Math.min(innerWidth,1100)-16-4*(cols-1))/cols;
+  document.documentElement.style.setProperty('--cols',cols);
+  document.documentElement.style.setProperty('--cw',cw+'px');
+  $('app').innerHTML=`<div class=top>${G.p.map(panel).join('')}</div><div class=msg>${G.msg||''}</div>
+  <div class=board>${G.b.map(card).join('')}</div><div class=act>${act()}</div>${modal()}`;
+}
+addEventListener('resize',()=>G&&render());
+newGame();
+</script></body></html>
