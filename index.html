@@ -7,21 +7,29 @@
 body{margin:0;background:#050914;color:#e8ecf4;font-family:"Hiragino Sans","Yu Gothic",sans-serif;font-size:14px}
 #app{max-width:1100px;margin:0 auto;padding:8px}
 .top{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.pl{border:2px solid #223052;border-radius:8px;padding:6px;min-height:92px}
+.hd{position:sticky;top:0;z-index:6;background:#050914;padding-bottom:2px} /* 上の欄は、スクロールしても見える */
+@media (max-height:820px){.pl{height:104px!important}.msg{height:34px!important}}
+.pl{border:2px solid #223052;border-radius:8px;padding:6px;height:136px;overflow-y:auto} /* 高さ固定:獲得が増えても盤面がずれない */
 .pl.on{border-color:#00E5FF;box-shadow:0 0 8px #00E5FF55}
 .pl h3{margin:0 0 4px;font-size:14px;display:flex;justify-content:space-between}
 .row{margin:2px 0;font-size:12px;line-height:1.7}
 .ch{display:inline-block;border:1px solid var(--c,#667);color:var(--c,#ccd);border-radius:4px;padding:0 4px;margin:1px;font-weight:700}
 .cp{background:#16254a;border-radius:4px;padding:0 4px;margin:1px;display:inline-block}
-.msg{min-height:22px;margin:6px 2px;color:#FFEB3B}
-.board{display:grid;grid-template-columns:repeat(var(--cols),1fr);gap:4px}
+.msg{height:40px;line-height:20px;overflow:hidden;margin:6px 2px;color:#FFEB3B}
+.board{display:grid;grid-template-columns:repeat(var(--cols),var(--cw));justify-content:center;gap:4px}
+/* ゲーム中は画面の高さにぴったり合わせ、スクロールなしで全体を見せる */
+#app.game{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+#app.game .bw{flex:1;min-height:0;overflow:hidden;display:flex;justify-content:center;align-items:flex-start}
+#app.game .act{margin:4px 0;padding:6px;min-height:0}
+@media (max-height:700px){.pl{height:92px!important}.pl .row{font-size:11px;line-height:1.4}.nav{margin-bottom:2px}.msg{margin:2px}}
 .slot{aspect-ratio:3/4}
-.card{width:100%;aspect-ratio:3/4;border-radius:6px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.card{width:100%;aspect-ratio:3/4;overflow:hidden;min-width:0;min-height:0;border-radius:6px;padding:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
 .back{background:#14213d;border:2px solid #2a3c6b;cursor:pointer}
 .face{background:#0c1426;border:2px solid var(--c);color:var(--c);gap:1px}
-.face b{font-size:calc(var(--cw)*.42);line-height:1}
-.face i{font-style:normal;font-size:calc(var(--cw)*.17);color:#e8ecf4}
-.face small{font-size:max(6px,calc(var(--cw)*.12))}
+.face{white-space:nowrap}
+.face b{font-size:calc(var(--cw)*.4);line-height:1}
+.face i{font-style:normal;font-size:calc(var(--cw)*.15);line-height:1.1;color:#e8ecf4}
+.face small{font-size:max(6px,calc(var(--cw)*.105))}
 .act{margin:10px 0;padding:8px;border-top:1px solid #223052;text-align:center}
 button.b{background:#00E5FF;color:#050914;border:0;border-radius:6px;padding:10px 16px;margin:4px;font-size:15px;font-weight:700}
 button.b.g{background:#2a3c6b;color:#e8ecf4}
@@ -32,6 +40,7 @@ button.b:disabled{opacity:.35}
 .md button.ch.sel{background:var(--c);color:#050914}
 table{width:100%;border-collapse:collapse;text-align:center}
 td,th{border-bottom:1px solid #223052;padding:4px}
+.ic{display:inline-block;width:28px;height:28px;font-size:22px;line-height:28px;text-align:center;vertical-align:middle;margin-right:4px}.ic svg{width:100%;height:100%;display:block}
 .ms{margin-right:auto;font-size:13px;color:#FFEB3B}
 .nav{display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px}
 button.b.sm{padding:6px 12px;font-size:13px;margin:0}
@@ -51,6 +60,8 @@ button.b.sm{padding:6px 12px;font-size:13px;margin:0}
 // ===== 設定データ(ノーマル)※難易度を増やすときはこのCONFIGを差し替える =====
 const CONFIG={
   name:'ノーマル',
+  title:'元素カードゲーム',zkey:'elemZukan', // タイトル・図鑑の保存名
+  nm:s=>E[s].n+'('+s+')',fmt:(s,n)=>`${E[s].n}(${s}×${n})`, // カードの表示のしかた
   copies:4,          // 各元素の枚数
   firstBonus:1,      // 先攻の補正点
   leftoverIsJunk:true, // 【仮】あがり時、融合後に残った元素カードをカス扱いにする(1枚=カス1枚)
@@ -71,38 +82,217 @@ const CONFIG={
     {n:'海の恵み',need:{'水':1,'食塩':1},b:6},{n:'工業の第一歩',need:{'鋼鉄':1,'ガラス':1},b:7},
     {n:'合金職人',need:{'鋼鉄':1,'真鍮':1},b:8},{n:'空飛ぶ金属',need:{'ジュラルミン':1,'鋼鉄':1},b:8},
     {n:'工業革命',need:{'鋼鉄':1,'ガラス':1,'真鍮':1},b:10},{n:'完全錬成',distinct:5,b:12}],
-  junk:[[36,3],[24,2],[12,1]] // [カス枚数以上, 点]
+  junk:[[36,3],[24,2],[12,1]], // [カス枚数以上, 点]
+  comLevels:{ // 【仮】COMの強さ。memory=記憶力(0〜1)、agariAt=融合の点数がこの値以上ならあがる(小さいほど早くあがる)
+    'やさしい':{memory:0.1,agariAt:12},'普通':{memory:0.6,agariAt:6},'強い':{memory:0.9,agariAt:1}}
 };
 // ===== ゲーム本体 =====
-const C=CONFIG,E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});
+// ===== ひらがなカードゲーム(ことばづくり)の設定。ルールは元素ゲームと同じ:ペアでカードを集め、あがるときに「ことば」を自動で作って点にする =====
+const SETS={element:CONFIG,hira:{...CONFIG,name:'ひらがな',title:'ひらがなカードゲーム',zkey:'elemZukanHira',nm:s=>s,fmt:(s,n)=>`${s}×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]},
+  kanji:{...CONFIG,name:'漢字',title:'漢字カードゲーム',get zkey(){return 'elemZukanKanji'+GRADE},nm:s=>`<span class=nt>${s}</span>`,fmt:(s,n)=>`<span class=nt>${s}</span>×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]}};
+const KJ=["", "一右雨円王音下火花貝学気九休玉金空月犬見五口校左三山子四糸字耳七車手十出女小上森人水正生青夕石赤千川先早草足村大男竹中虫町天田土二日入年白八百文木本名目立力林六", "引羽雲園遠何科夏家歌画回会海絵外角楽活間丸岩顔汽記帰弓牛魚京強教近兄形計元言原戸古午後語工公広交光考行高黄合谷国黒今才細作算止市矢姉思紙寺自時室社弱首秋週春書少場色食心新親図数西声星晴切雪船線前組走多太体台地池知茶昼長鳥朝直通弟店点電刀冬当東答頭同道読内南肉馬売買麦半番父風分聞米歩母方北毎妹万明鳴毛門夜野友用曜来里理話", "悪安暗医委意育員院飲運泳駅央横屋温化荷界開階寒感漢館岸起期客究急級宮球去橋業曲局銀区苦具君係軽血決研県庫湖向幸港号根祭皿仕死使始指歯詩次事持式実写者主守取酒受州拾終習集住重宿所暑助昭消商章勝乗植申身神真深進世整昔全相送想息速族他打対待代第題炭短談着注柱丁帳調追定庭笛鉄転都度投豆島湯登等動童農波配倍箱畑発反坂板皮悲美鼻筆氷表秒病品負部服福物平返勉放味命面問役薬由油有遊予羊洋葉陽様落流旅両緑礼列練路和", "愛案以衣位茨印英栄媛塩岡億加果貨課芽賀改械害街各覚潟完官管関観願岐希季旗器機議求泣給挙漁共協鏡競極熊訓軍郡群径景芸欠結建健験固功好香候康佐差菜最埼材崎昨札刷察参産散残氏司試児治滋辞鹿失借種周祝順初松笑唱焼照城縄臣信井成省清静席積折節説浅戦選然争倉巣束側続卒孫帯隊達単置仲沖兆低底的典伝徒努灯働特徳栃奈梨熱念敗梅博阪飯飛必票標不夫付府阜富副兵別辺変便包法望牧末満未民無約勇要養浴利陸良料量輪類令冷例連老労録", "圧囲移因永営衛易益液演応往桜可仮価河過快解格確額刊幹慣眼紀基寄規喜技義逆久旧救居許境均禁句型経潔件険検限現減故個護効厚耕航鉱構興講告混査再災妻採際在財罪殺雑酸賛士支史志枝師資飼示似識質舎謝授修述術準序招証象賞条状常情織職制性政勢精製税責績接設絶祖素総造像増則測属率損貸態団断築貯張停提程適統堂銅導得毒独任燃能破犯判版比肥非費備評貧布婦武復複仏粉編弁保墓報豊防貿暴脈務夢迷綿輸余容略留領歴", "胃異遺域宇映延沿恩我灰拡革閣割株干巻看簡危机揮貴疑吸供胸郷勤筋系敬警劇激穴券絹権憲源厳己呼誤后孝皇紅降鋼刻穀骨困砂座済裁策冊蚕至私姿視詞誌磁射捨尺若樹収宗就衆従縦縮熟純処署諸除承将傷障蒸針仁垂推寸盛聖誠舌宣専泉洗染銭善奏窓創装層操蔵臓存尊退宅担探誕段暖値宙忠著庁頂腸潮賃痛敵展討党糖届難乳認納脳派拝背肺俳班晩否批秘俵腹奮並陛閉片補暮宝訪亡忘棒枚幕密盟模訳郵優預幼欲翌乱卵覧裏律臨朗論"]; // 学年別漢字配当表(平成29年告示)。KJ[学年]=その学年でならう漢字
+const WORDS_RAW="一人 二人 三日 九月 十月 七月 一年 六年 人口 大人 小人 女子 男子 子犬 先生 学校 青空 天気 花火 火山 森林 水田 土日 日本 本気 草花 草木 竹林 早口 足音 千円 百円 左右 上下 出口 入口 下校 大学 大木 大石 大雨 小雨 小石 小川 小山 村人 町中 文字 名人 王女 白山 小学生 出入口 左手 右手 月日 山川 目玉 正月 見学 水玉 手足 気力 立木 正午 外国 海水 学園 毎日 友人 母校 会社 自分 算数 国語 学年 体力 電車 電気 来年 今年 先月 今日 明日 毎年 新年 本当 市場 時間 直線 外食 東西 南北 前後 公園 里山 工作 行楽 語学 魚市場 弟子 兄弟 姉妹 父母 馬車 牛肉 肉食 麦茶 茶色 黄色 黒雲 雲海 雪山 雪国 春風 夏空 秋風 冬空 星空 朝食 昼食 夕食 会話 読書 書道 計算 作文 絵画 画家 歌手 地図 数学 回数 帰国 通学 弱気 強気 元気 天才 後半 半分 台風 西風 北風 南風 東京 光線 長話 新聞 野原 野鳥 公道 合図 足元 旅行 運動 動物 植物 野球 地球 港町 駅前 病気 病院 医者 薬局 銀行 住所 都会 練習 勉強 宿題 勝負 安全 研究 感動 荷物 乗客 昔話 都市 美人 神社 神様 表面 氷水 農業 農家 発表 発車 発音 速度 大根 根気 世界 開始 終点 重力 柱時計 全員 委員 駅員 店員 悪人 意見 運転 屋上 屋根 温度 学期 期待 急行 急用 係員 決定 県道 湖水 幸運 号外 祭日 作者 使用 指先 歯車 詩集 事実 実話 写真 主人 習字 集会 重大 暑中 助手 消化 商店 乗車 植木 身長 真実 深海 進行 整理 全身 相手 送別 想像 息子 打者 対話 代表 題名 炭火 短歌 談話 着物 注意 帳面 調子 定食 庭園 鉄道 転校 投手 島国 湯船 登山 等分 童話 農村 配達 倍数 箱庭 発明 反対 坂道 皮肉 悲話 美化 鼻水 筆記 氷山 表紙 秒針 病室 品物 負傷 部屋 服装 幸福 物語 平和 返事 勉学 放送 味方 命中 面会 問題 役場 薬草 理由 石油 有名 遊園地 予定 羊毛 洋服 太陽 様子 落葉 流星 旅館 両手 緑茶 礼服 列車 道路 和食 給食 結果 季節 満月 無事 特別 自然 努力 愛犬 記念 運動会 成功 戦争 勇気 利用 約束 要点 陸地 観光 関係 競走 位置 以上 以下 以前 衣服 季語 器用 機会 機械 議会 求人 漁船 協力 共通 英語 栄養 塩分 加工 果実 貨物 課題 改良 害虫 街道 各国 完成 願書 希望 旗手 給料 軍隊 景色 欠席 建物 健康 固体 好意 香水 気候 差別 菜園 最高 材木 昨日 札束 印刷 観察 参加 産地 散歩 残念 試験 児童 治療 辞典 失敗 借金 種類 周囲 祝日 順番 初夏 松林 笑顔 唱歌 焼肉 照明 城下 信号 省略 清水 静止 席順 積雪 折紙 節約 説明 浅海 戦力 選手 倉庫 巣箱 側面 続行 卒業 隊列 達成 単語 仲間 底力 的中 辞書 伝言 徒歩 灯台 特急 得点 熱帯 敗北 梅雨 博士 飛行 必要 不安 夫婦 付近 別人 変化 便利 法律 牧場 末期 満員 未来 民話 無人 勇者 要求 養分 浴室 利子 陸上 良心 料理 冷水 例外 連続 老人 労力 記録 労働 作法 経験 資料 国際 状態 輸出 輸入 貿易 備品 評判 銅像 銅山 武士 武力 製品 製造 構造 保護 規則 基本 基地 移動 営業 衛生 永久 液体 演奏 応用 往復 可能 仮定 価格 河川 過去 快適 解決 格言 刊行 幹線 慣習 眼科 紀行 寄付 喜劇 技術 義務 逆転 旧道 救急 居間 許可 境界 平均 禁止 句読点 型紙 潔白 条件 検査 現在 減少 個人 効果 厚紙 耕作 航海 鉱山 構成 興味 告白 混合 調査 再開 災害 採点 在庫 財産 犯罪 雑誌 酸素 賛成 支店 歴史 志望 教師 飼育 指示 意識 品質 校舎 感謝 授業 修理 準備 順序 招待 証明 印象 賞品 条約 異常 感情 織物 職業 制限 性格 政治 勢力 精神 税金 責任 成績 接近 設計 絶対 祖父 祖母 素直 総合 造船 増加 測定 所属 損害 貸家 態度 団体 判断 貯金 主張 停止 提案 程度 適当 統一 食堂 導入 得意 独立 任務 燃料 能力 犯人 判定 出版 肥料 非常 費用 評価 貧富 布団 婦人 武道 回復 複数 仏像 粉末 編集 弁当 墓地 報告 豊富 防火 暴力 事務 夢中 迷子 綿花 輸送 余分 容器 略図 留守 領土 歴代 宇宙 郵便 郵便局 若者 骨折 勤務 砂糖 糖分 紅葉 皇室 朗読 論文 劇場 映画 映像 簡単 宝物 宝石 窓口 難問 卵黄 閉店 閉館 開閉 暖冬 胃腸 異常 遺産 地域 延長 沿線 恩人 灰色 拡大 革命 閣議 割合 株式 干潮 巻物 看板 簡潔 危険 机上 指揮 貴重 疑問 吸収 提供 郷土 勤労 筋肉 系統 敬意 警察 券売 絹糸 権利 憲法 源氏 厳重 自己 呼吸 誤解 皇后 孝行 紅白 降水 鋼鉄 穀物 骨格 困難 砂場 座席 経済 裁判 対策 冊数 至急 私立 姿勢 視力 作詞 磁石 発射 尺度 若草 樹木 収入 宗教 就職 大衆 従来 縦横 縮小 成熟 純白 処理 署名 諸国 除去 承知 将来 障子 蒸気 針金 垂直 推理 寸法 全盛 聖火 誠意 宣言 専門 洗面 染色 銭湯 親善 創作 装置 体操 内臓 存在 尊重 退場 住宅 担当 探検 誕生 段階 価値 忠実 著者 官庁 頂上 賃金 展開 討論 政党 乳牛 認定 納入 頭脳 派手 拝見 背中 俳句 班長 晩年 否定 批判 秘密 土俵 腹痛 奮戦 並木 陛下 閉会 片道 補給 訪問 死亡 忘年会 枚数 密集 模型 郵送 優勝 預金 幼虫 翌日 混乱 裏口"; // 熟語リスト(学年は使われる漢字の最大学年で自動判定。配当表にない漢字を含む語は自動で除く)
+const KG={};KJ.forEach((t,g)=>[...t].forEach(c=>KG[c]=g));
+const ALLW=[];{const seen=new Set();WORDS_RAW.split(/\s+/).forEach(w=>{
+  if(w.length<2||w.length>3||![...w].every(c=>KG[c]))return;
+  const key=[...w].sort().join('');if(seen.has(key))return;seen.add(key); // 同じ字の組み合わせは1つだけ
+  ALLW.push({k:w,g:Math.max(...[...w].map(c=>KG[c]))})})}
+const PAL=['#FFB300','#FF007F','#00E5FF','#76FF03','#FF8A65','#9D4EDD','#4DA3FF','#FFEB3B','#1DE9B6','#E07A3F','#ECEFF1','#7B7BFF','#B0BEC5'];
+// 【仮】ゲームのたびに、その学年までの熟語から漢字13種類をランダムに選ぶ(熟語が作れるように、熟語をもとに選ぶ)
+function buildKanji(){
+  const g=GRADE,ws=ALLW.filter(w=>w.g<=g),set=new Set(),nw=w=>[...new Set(w.k)].filter(c=>!set.has(c));
+  for(let i=0;i<300&&set.size<13;i++){
+    const cand=ws.filter(w=>{const n=nw(w).length;return n>0&&set.size+n<=13});
+    if(!cand.length)break;
+    const near=cand.filter(w=>nw(w).length<=1),top=set.size&&near.length?near:cand; // 重なりのある熟語を優先
+    const hi=top.filter(w=>w.g===g),pool=hi.length&&Math.random()<.6?hi:top; // その学年の漢字を多めに
+    nw(pool[Math.random()*pool.length|0]).forEach(c=>set.add(c));
+  }
+  const rest=Object.keys(KG).filter(c=>KG[c]<=g&&!set.has(c));
+  while(set.size<13)set.add(rest.splice(Math.random()*rest.length|0,1)[0]);
+  C.elements=[...set].sort(()=>Math.random()-.5).map((c,i)=>[c,'',KG[c]+'年',PAL[i]]);
+  C.compounds={};ws.filter(w=>[...w.k].every(c=>set.has(c))).forEach(w=>{const r={};[...w.k].forEach(c=>r[c]=(r[c]||0)+1);C.compounds[w.k]={r,p:w.k.length===2?3:6}}); // 2字=3点、3字=6点
+  C.yaku=[3,4,5,6].map((n,i)=>({n:'ことば'+n+'つ',distinct:n,b:[5,8,11,14][i]}));
+  C.ys=[...C.yaku].sort((x,z)=>z.b-x.b);C.zTotal=ws.length;
+  E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});FC={};
+}
+// ===== ひらがなカードゲーム:文字をゲームごとにランダムに選ぶ(漢字ゲームと同じしくみ) =====
+const HIRA46='あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをん';
+const ROWOF={};['あいうえお','かきくけこ','さしすせそ','たちつてと','なにぬねの','はひふへほ','まみむめも','やゆよ','らりるれろ','わをん'].forEach(r=>[...r].forEach(c=>ROWOF[c]=r[0]+'行'));
+const HW_RAW="あめ あし あき あさ あか あり あな あみ あい あお いえ いか いし いす いぬ いも いわ いと いけ いち いま うし うま うみ うた うえ うお うで うめ うそ うち えき えび えん おに おや おの おと かい かお かさ かみ かめ かな かわ かた かき から かに かま きく きた きし きつ きね きの きり くま くさ くち くつ くも くり くろ けむ けん こい こえ こま こめ こと こな さる さら さけ さか さき さい さく しお しか しま しろ した しる すし すな すみ すき せみ せな せき せん そら たこ たま たけ たに たな たて たい たね ちち つき つる つち つな つめ てら てん とり とら とも なす なつ なに なみ なか なわ にく にし にわ ぬの ねこ ねつ ねる ねん のり のみ はな はし はた はは はこ はる はり はま はか ひと ひる ひも ふね ふく ふた ふゆ へそ へや ほし ほん ほね ほか まめ まつ まち まる まく まい まゆ みみ みち みせ みな みの みる むし むね むら めし もも もち もり もん やま やく やね ゆめ ゆき ゆう ゆか よる よこ よめ よみ らく らん りす りく りか りん れい れん ろく わに わな わら わし わた さくら すいか みかん さかな さんま つくえ ほたる あした あさひ おもち すもも ひるね はなみ やさい まくら かたな やすみ さむい あかい あおい ひろい おもい しろい くろい かるい くらい うまい いのち ひかり あたま ことり こころ わたし からす きつね ところ さとう ふとん ふくろ ふたつ まつり ひとり ふたり わらう まける みせる かなり まとめ さわる ほしい はやい せまい あまい しかく おとな なかま あなた いのる たから みらい ゆうひ なまえ かわら はなし はたけ ほとけ ひとみ いたみ いきる ふるい みなと とけい とまと ななつ あんこ"; // ひらがなの言葉(2〜3文字)。濁点・小さい字を使わない46文字だけでできた語だけを使う
+const ALLH=[];{const seen=new Set();HW_RAW.split(/\s+/).forEach(w=>{
+  if(w.length<2||w.length>3||![...w].every(c=>HIRA46.includes(c)))return;
+  const key=[...w].sort().join('');if(seen.has(key))return;seen.add(key);ALLH.push({k:w})})}
+// 【仮】ゲームのたびに、言葉をもとにひらがな13種類をランダムに選ぶ(言葉が作れるように)
+function buildHira(){
+  const ws=ALLH,set=new Set(),nw=w=>[...new Set(w.k)].filter(c=>!set.has(c));
+  for(let i=0;i<300&&set.size<13;i++){
+    const cand=ws.filter(w=>{const n=nw(w).length;return n>0&&set.size+n<=13});
+    if(!cand.length)break;
+    const near=cand.filter(w=>nw(w).length<=1),top=set.size&&near.length?near:cand;
+    nw(top[Math.random()*top.length|0]).forEach(c=>set.add(c));
+  }
+  const rest=[...HIRA46].filter(c=>!set.has(c));
+  while(set.size<13)set.add(rest.splice(Math.random()*rest.length|0,1)[0]);
+  C.elements=[...set].sort(()=>Math.random()-.5).map((c,i)=>[c,'',ROWOF[c],PAL[i]]);
+  C.compounds={};ws.filter(w=>[...w.k].every(c=>set.has(c))).forEach(w=>{const r={};[...w.k].forEach(c=>r[c]=(r[c]||0)+1);C.compounds[w.k]={r,p:w.k.length===2?3:6}});
+  C.yaku=[3,4,5,6].map((n,i)=>({n:'ことば'+n+'つ',distinct:n,b:[5,8,11,14][i]}));
+  C.ys=[...C.yaku].sort((x,z)=>z.b-x.b);C.zTotal=ws.length;
+  E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});FC={};
+}
+const setGrade=g=>{GRADE=g;KT=table();loadZ();buildKanji();render()};
+let GAME='element',C=SETS.element,E={},KT=[],FC={};
+function useSet(g){GAME=g;C=SETS[g];E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});
+  C.ys=[...C.yaku].sort((x,z)=>z.b-x.b);KT=table();FC={};loadZ();if(g==='kanji')buildKanji();if(g==='hira')buildHira()}
+function setGame(g){useSet(g);SHOW=g==='kanji'?1:0;render()} // 漢字ゲームは最初から「ゆっくり」(あとから変えられる)
+const setShow=i=>{SHOW=i;render()};
+// アイコン:プレイヤーは3種類(またはなし)から選ぶ。COMは強さごとに「人・どうぶつ・ロボット」のどれかがランダムで出る
+const robot=(c,k)=>{const w=[18,24,30][k],x=20-w/2,y=[16,12,9][k],h=[14,20,24][k],e=[1,0,-1][k];
+  return`<svg viewBox="0 0 40 40"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="${c}"/><circle cx="${15+e}" cy="${y+h*.4}" r="3" fill="#fff"/><circle cx="${25-e}" cy="${y+h*.4}" r="3" fill="#fff"/><rect x="${x+w*.3}" y="${y+h*.7}" width="${w*.4}" height="2" fill="#fff"/><line x1="20" y1="${y}" x2="20" y2="${y-6}" stroke="${c}" stroke-width="2"/><circle cx="20" cy="${y-7}" r="2.5" fill="#FFEB3B"/>${k==2?`<rect x="${x-3}" y="${y+4}" width="3" height="8" fill="${c}"/><rect x="${x+w}" y="${y+4}" width="3" height="8" fill="${c}"/>`:''}</svg>`};
+const PICONS={kid:['こども','🧒'],cat:['ねこ','🐱'],robo:['ロボ',robot('#1DE9B6',1)]};
+const CICONS={'やさしい':[['こども','🧒'],['ひよこ','🐥'],['ちいさなロボ',robot('#4DA3FF',0)]],'普通':[['ちゅうがくせい','🧑‍🎓'],['きつね','🦊'],['ロボ',robot('#76FF03',1)]],'強い':[['えらいひと','🤴'],['ライオン','🦁'],['おおきなロボ',robot('#FF007F',2)]]};
+let PI=[null,null];
+const setIcon=(i,k)=>{PI[i]=k;render()};
+const iconBtns=i=>`<button class="b sm${PI[i]===null?'':' g'}" onclick="setIcon(${i},null)">なし</button>`+Object.keys(PICONS).map(k=>`<button class="b sm${PI[i]===k?'':' g'}" onclick="setIcon(${i},'${k}')"><span class=ic>${PICONS[k][1]}</span>${PICONS[k][0]}</button>`).join('');
+const mkIcons=()=>[PI[0]?PICONS[PI[0]][1]:'',MODE==='com'?CICONS[LEVEL][Math.random()*3|0][1]:(PI[1]?PICONS[PI[1]][1]:'')];
 const $=id=>document.getElementById(id);
-let G=null,M=null,V=null; // G=1ゲームの状態, M=マッチ(複数ゲーム)の状態, V=ルール/図鑑の表示
+let G=null,M=null,V=null,MODE='com',LEVEL='普通',GRADE=1,SHOW=0;
+const SHOWS=[['ふつう',1300],['ゆっくり',2500],['とてもゆっくり',4000]]; // 【仮】カードを見せる時間(ミリ秒) // G=1ゲームの状態, M=マッチ(複数ゲーム)の状態, V=ルール/図鑑の表示
 // 図鑑:作った化合物の回数をこの端末のブラウザに保存する(保存できない環境では、遊んでいる間だけ記録)
-let Z={};try{Z=JSON.parse(localStorage.getItem('elemZukan')||'{}')}catch(e){}
-const saveZ=()=>{try{localStorage.setItem('elemZukan',JSON.stringify(Z))}catch(e){}};
+let Z={};
+function loadZ(){Z={};try{Z=JSON.parse(localStorage.getItem(C.zkey)||'{}')}catch(e){}}
+const saveZ=()=>{try{localStorage.setItem(C.zkey,JSON.stringify(Z))}catch(e){}};
+// 効果音:ブラウザの音(Web Audio)で作る。音のON/OFFはこの端末に保存
+// ===== ひらがなモード(小学1年生向け):画面に出る文字を、やさしいことばのひらがなに置きかえる =====
+let KID=false;try{KID=localStorage.getItem('elemKid')==='1'}catch(e){}
+const KANA=[ // [元の文言, ひらがな]。長い文言から順に置きかえる。ルール文は KL に別に用意
+['ゲームを選んでください','ゲームを えらんでね'],['ペアではありません。','おなじカードじゃなかったよ。'],['のペア成立!','が そろったよ!'],
+['こいこい!ゲーム再開','こいこい! つづけるよ'],['COMの手番:カードをめくっています…','コンピュータが カードを めくっているよ…'],
+['の手番:裏向きのカードを2枚めくってください','のばん:カードを 2まい めくってね'],['COMが選んでいます…','コンピュータが えらんでいるよ…'],
+['いまあがると、次のように融合します','いま あがると、こうなるよ'],['融合できるカードがそろいました','くっつけられるカードが そろったよ'],
+['引き分け(だれもあがれませんでした)','ひきわけ(だれも あがれなかったよ)'],['0点(あがりなし)','0てん(あがれなかったよ)'],
+['あがり時の点数:','あがりのときの てん:'],['あがり(ゲーム終了)','あがり(ゲームおわり)'],['こいこい(続ける)','こいこい(つづける)'],
+['対戦相手を選んでください','あいてを えらんでね'],['何ゲーム勝負にしますか?','なんゲームの しょうぶに する?'],
+['各ゲームは、得点が多い方(あがった人)の勝ち。勝ったゲームが多い方がマッチの勝者です。','1ゲームごとに、あがったひとの かち。かった ゲームが おおいほうが しょうぶの かちだよ。'],
+['COMと対戦(1人)','コンピュータと たいせん(ひとり)'],['2人で対戦','ふたりで たいせん'],['COMの強さ','コンピュータの つよさ'],
+['ゲーム勝負','ゲームしょうぶ'],['元素カードゲーム','げんそカードゲーム'],['二酸化炭素','にさんかたんそ'],
+['生命の水','いのちのみず'],['空気の循環','くうきのめぐり'],['海の恵み','うみのめぐみ'],['工業の第一歩','ものづくりのはじめ'],
+['合金職人','ごうきんめいじん'],['空飛ぶ金属','そらとぶきんぞく'],['工業革命','ものづくりのだいへんしん'],['完全錬成','ぜんぶそろった'],
+['役リスト(化合物の組み合わせ)','やくの ひょう(できたものの くみあわせ)'],['図鑑の記録を消しますか?','ずかんの きろくを けしても いい?'],
+['図鑑に新しく登録:','ずかんに あたらしく のったよ:'],['まだ作っていません','まだ つくっていないよ'],['化合物図鑑','できたものずかん'],
+['先攻補正点','さいしょの ひとの ボーナス'],['ゲーム数を選び直す','ゲームの かずを えらびなおす'],['マッチ結果:','しょうぶの けっか:'],
+['レシピ一覧','くっつけかたの ひょう'],['融合リスト','くっつけかたの ひょう'],['記録を消す','きろくを けす'],['作った回数','つくったかず'],
+['元素カード','げんそカード'],['化合物点','できたものの てん'],['役ボーナス','やくボーナス'],['次のゲームへ','つぎの ゲームへ'],
+['ゲーム目:','ゲームめ:'],['あがった人','あがったひと'],['ゲーム終了','ゲームおわり'],['融合失敗…','くっつかなかった…'],['融合!','くっついた!'],
+['アルミニウム','あるみにうむ'],['ナトリウム','なとりうむ'],['カルシウム','かるしうむ'],['ジュラルミン','じゅらるみん'],
+['異なる化合物','ちがう できたもの'],['累計点','ぜんぶの てん'],['勝ち数','かった かず'],['あがり時','あがりのとき'],
+['化合物','できたもの'],['図鑑','ずかん'],['元素','げんそ'],['遊び方','あそびかた'],['水素','すいそ'],['酸素','さんそ'],['窒素','ちっそ'],
+['炭素','たんそ'],['ケイ素','けいそ'],['塩素','えんそ'],['硫黄','いおう'],['亜鉛','あえん'],['鋼鉄','はがね'],['真鍮','しんちゅう'],
+['食塩','しお'],['石灰石','せっかいせき'],['硫酸','りゅうさん'],['カス点','のこりのてん'],['引き分け','ひきわけ'],['の勝ち!','の かち!'],
+['閉じる','とじる'],['続ける','つづける'],['種類','しゅるい'],['組み合わせ','くみあわせ'],['余り:','のこり:'],['先攻','さいしょ'],
+['普通','ふつう'],['強い','つよい'],['役「','やく「'],['合計','ぜんぶで'],['以上','いじょう'],['以下','いか'],['融合','くっつける'],
+['カス','のこり'],['COM','コンピュータ'],['鉄','てつ'],['銅','どう'],['水','みず'],['役','やく'],['点','てん'],['枚','まい'],['回','かい'],
+['勝','かち'],['第','だい'],['音','おと'],['COMのアイコン(どれかが出ます)','コンピュータの アイコン(どれかが でるよ)'],['秒','びょう'],['カードを見せる時間','カードを みせる じかん']].sort((a,b)=>b[0].length-a[0].length);
+// ひらがなカードゲームでは、元素ゲーム用の言葉を「もじ・ことば」用に言いかえる
+const KANA_H=[['融合できるカードがそろいました','ことばが つくれる カードが そろったよ'],['融合リスト','ことばの ひょう'],['レシピ一覧','ことばの ひょう'],
+['元素カードゲーム','ひらがなカードゲーム'],['元素カード','もじカード'],['元素','もじ'],['化合物図鑑','ことばずかん'],['化合物点','ことばの てん'],
+['化合物','ことば'],['異なる化合物','ちがう ことば'],['役リスト(化合物の組み合わせ)','やくの ひょう(ことばの くみあわせ)'],['融合!','できた!']];
+// 漢字ゲーム:元素ゲーム用の言葉を「漢字・熟語」用に言いかえる(KANA_J=ふつうの文、KANA_JK=ひらがなの文)
+const KANA_J=[['元素カードゲーム','漢字カードゲーム'],['元素カード','漢字カード'],['元素','漢字'],['化合物図鑑','熟語図鑑'],['化合物点','熟語の点'],['異なる化合物','ちがう熟語'],['化合物','熟語'],
+['役リスト(化合物の組み合わせ)','役リスト(熟語の組み合わせ)'],['融合できるカードがそろいました','熟語が作れるカードがそろいました'],['下の融合リスト','下の熟語リスト'],['融合リスト','熟語リスト'],
+['レシピ一覧','熟語リスト'],['融合できる','熟語が作れる'],['融合して点数','熟語を作って点数'],['融合は、','熟語は、'],['融合に使わず','熟語に使わず'],['融合!','できた!'],['融合','熟語づくり']];
+const KANA_JK=[['漢字カードゲーム','かんじカードゲーム'],['漢字カード','かんじカード'],['漢字','かんじ'],['熟語図鑑','じゅくごずかん'],['熟語','じゅくご'],
+['元素カードゲーム','かんじカードゲーム'],['元素カード','かんじカード'],['元素','かんじ'],['化合物図鑑','じゅくごずかん'],['化合物点','じゅくごの てん'],['異なる化合物','ちがう じゅくご'],['化合物','じゅくご'],
+['役リスト(化合物の組み合わせ)','やくの ひょう(じゅくごの くみあわせ)'],['融合できるカードがそろいました','じゅくごが つくれる カードが そろったよ'],['融合リスト','じゅくごの ひょう'],['レシピ一覧','じゅくごの ひょう'],['融合!','できた!'],
+['学年を選んでください','がくねんを えらんでね'],['下の学年でならう漢字も入ります。漢字は毎回ランダムです。','したの がくねんで ならう かんじも はいるよ。かんじは まいかい ランダムだよ。'],['年生','ねんせい']];
+const table=()=>{const m=new Map(),add=a=>a.forEach(([x,y])=>m.set(x,y));
+  if(GAME==='kanji'){if(kid()){add(KANA);add(KANA_JK)}else add(KANA_J)}
+  else if(kid()){add(KANA);if(GAME==='hira')add(KANA_H)}
+  return[...m].sort((a,b)=>b[0].length-a[0].length)};
+const kid=()=>KID||GAME==='hira'||(GAME==='kanji'&&GRADE<=2); // 1・2年生は画面の文字もひらがな
+function kana(t){for(const[a,b]of KT)if(t.includes(a))t=t.split(a).join(b);return t}
+const K=t=>(kid()||GAME==='kanji')?kana(t):t;
+function kanaDom(){
+  document.title=K(C.title);
+  if(!kid()&&GAME!=='kanji')return;
+  const w=document.createTreeWalker($('app'),NodeFilter.SHOW_TEXT);let n;
+  while(n=w.nextNode()){if(n.parentElement&&n.parentElement.closest('.nt'))continue;n.nodeValue=kana(n.nodeValue)}} // 漢字カードや熟語はそのまま
+function toggleKid(){KID=!KID;KT=table();try{localStorage.setItem('elemKid',KID?'1':'0')}catch(e){}render()}
+let mute=false;try{mute=localStorage.getItem('elemMute')==='1'}catch(e){}
+let ac=null;
+function audio(){try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume()}catch(e){}return ac}
+function tone(f,t0,d,type,v){
+  if(mute)return;const a=audio();if(!a)return;
+  try{const o=a.createOscillator(),g=a.createGain(),t=a.currentTime+t0;
+    o.type=type||'sine';o.frequency.value=f;g.gain.setValueAtTime(v||.12,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d)}catch(e){}}
+function noise(t0,d,freq,v){ // カードをめくる「パッ」という紙の音用のノイズ
+  if(mute)return;const a=audio();if(!a)return;
+  try{const n=a.sampleRate*d|0,b=a.createBuffer(1,n,a.sampleRate),x=b.getChannelData(0);
+    for(let i=0;i<n;i++)x[i]=(Math.random()*2-1)*(1-i/n);
+    const s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain(),t=a.currentTime+t0;
+    s.buffer=b;f.type='bandpass';f.frequency.value=freq;f.Q.value=.8;
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    s.connect(f);f.connect(g);g.connect(a.destination);s.start(t)}catch(e){}}
+const SE={
+  flip:()=>{noise(0,.14,2500,.9);tone(900,0,.07,'square',.1);tone(500,.04,.1,'triangle',.22)},
+  pair:()=>{tone(784,0,.12);tone(988,.1,.12);tone(1319,.2,.22)},
+  miss:()=>{tone(220,.25,.18,'sawtooth',.07);tone(160,.4,.25,'sawtooth',.07)},
+  fuse:()=>[523,659,784,1047].forEach((f,i)=>tone(f,i*.09,.16,'square',.06)),
+  agari:()=>[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.12,.28,'triangle',.12)),
+  koikoi:()=>{tone(440,0,.1,'square',.07);tone(587,.1,.16,'square',.07)}};
+function toggleMute(){mute=!mute;try{localStorage.setItem('elemMute',mute?'1':'0')}catch(e){}render();SE.flip()}
 const view=v=>{V=v;render()};
 function menu(){M=null;G=null;render()}
-function start(n){M={n,g:0,wins:[0,0],pts:[0,0],hist:[],first:Math.random()<.5?0:1};newGame()} // 先攻は最初だけランダム、以降は交代(仮)
+const setMode=m=>{MODE=m;render()},setLevel=l=>{LEVEL=l;render()};
+function start(n){audio();M={n,mode:MODE,level:LEVEL,icons:mkIcons(),names:MODE==='com'?['あなた','COM('+LEVEL+')']:['プレイヤー1','プレイヤー2'],g:0,wins:[0,0],pts:[0,0],hist:[],first:Math.random()<.5?0:1};newGame()} // 先攻は最初だけランダム、以降は交代(仮)
 function nextGame(){M.first=1-M.first;newGame()}
 function endGame(){G.over=true;const w=G.winner;M.g++;
   if(w!=null){M.wins[w]++;M.pts[w]+=G.p[w].res.total} // ゲームに勝つのは、あがって得点した人
   M.hist.push(w);render()}
+const CL=()=>C.comLevels[M.level];
+const isCom=()=>!!(M&&M.mode==='com'&&G&&G.cur===1);
+// 【仮】COM:見たカードを確率(memory)で覚えていて、覚えているペアを優先して取る。融合の点数が一定以上ならあがる
+function comPick(){
+  const downs=G.b.map((c,i)=>i).filter(i=>G.b[i].s==='down'&&!G.sel.includes(i));
+  const rem=()=>Math.random()<CL().memory,known=downs.filter(i=>G.mem[i]!=null);
+  if(G.sel.length){const e=G.b[G.sel[0]].e,m=known.filter(i=>G.mem[i]===e);if(m.length&&rem())return m[0]}
+  else for(const i of known)if(known.some(j=>j!==i&&G.mem[j]===G.mem[i])&&rem())return i;
+  const unk=downs.filter(i=>G.mem[i]==null),pool=unk.length?unk:downs;
+  return pool[Math.random()*pool.length|0];
+}
+function comStep(){
+  const g=G;
+  if(!g||g.over||V||!isCom()||g.lock||g.comT||(g.ph!=='pick'&&g.ph!=='yaku'))return;
+  g.comT=true;
+  setTimeout(()=>{
+    g.comT=false;
+    if(G!==g||g.over||V||!isCom()||g.lock)return;
+    if(g.ph==='yaku'){const left=g.b.filter(x=>x.s==='down').length;
+      if(g.pre.total>=CL().agariAt||left<=10)agari();else koikoi()}
+    else if(g.ph==='pick')flip(comPick(),true);
+  },g.ph==='yaku'?1500:700);
+}
 function nav(){
-  const m=M&&G?`<span class=ms>第${G.over?M.g:M.g+1}/${M.n}ゲーム ${M.wins[0]}勝-${M.wins[1]}勝</span>`:'';
-  return`<div class=nav>${m}<button class="b g sm" onclick="view('rules')">ルール・リスト</button><button class="b g sm" onclick="view('zukan')">図鑑 ${Object.keys(Z).length}/${Object.keys(C.compounds).length}</button></div>`}
-function resetZ(){if(confirm('図鑑の記録を消しますか?')){Z={};saveZ();render()}}
+  const m=M&&G?`<span class=ms>第${G.over?M.g:M.g+1}/${M.n}ゲーム ${M.wins[0]}勝-${M.wins[1]}勝${GAME==='kanji'?' '+GRADE+'年生':''}</span>`:'';
+  return`<div class=nav>${m}<button class="b g sm" onclick="view('rules')">ルール・リスト</button><button class="b g sm" onclick="view('zukan')">図鑑 ${Object.keys(Z).length}/${C.zTotal||Object.keys(C.compounds).length}</button><button class="b g sm" onclick="toggleMute()">音 ${mute?'OFF':'ON'}</button>${GAME==='element'||(GAME==='kanji'&&GRADE>=3)?`<button class="b g sm" onclick="toggleKid()">${KID?'かんじ':'ひらがな'}</button>`:''}</div>`}
+function resetZ(){if(confirm(K('図鑑の記録を消しますか?'))){Z={};saveZ();render()}}
 function newGame(){
+  if(GAME==='kanji')buildKanji(); // 漢字・ひらがなは毎ゲームえらびなおす
+  if(GAME==='hira')buildHira();
   const d=[];C.elements.forEach(e=>{for(let k=0;k<C.copies;k++)d.push(e[0])});
   for(let i=d.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[d[i],d[j]]=[d[j],d[i]]}
   const mk=n=>({n,cards:{},comps:{},used:{},yakus:[],pend:null,cand:null,junk:0,cp:0,yp:0,jp:0});
   const f=M.first;
-  G={b:d.map(e=>({e,s:'down'})),p:[mk('プレイヤー1'),mk('プレイヤー2')],cur:f,first:f,ph:'pick',sel:[],lock:false,msg:'',fz:null,over:false};
+  G={b:d.map(e=>({e,s:'down'})),p:M.names.map((n,i)=>({...mk(n),icon:M.icons[i]})),cur:f,first:f,ph:'pick',sel:[],lock:false,msg:'',fz:null,over:false,mem:{}};
   render();
 }
-function flip(i){
-  if(G.lock||G.ph!=='pick'||G.b[i].s!=='down')return;
-  G.b[i].s='up';G.sel.push(i);
+function flip(i,auto){
+  if(G.lock||G.ph!=='pick'||G.b[i].s!=='down'||(isCom()&&!auto))return; // COMの番は人が触れない
+  G.b[i].s='up';G.sel.push(i);G.mem[i]=G.b[i].e; // めくったカードは両者が見たので記録
+  SE.flip();
   if(G.sel.length<2){render();return}
+  if(G.b[G.sel[0]].e===G.b[G.sel[1]].e)setTimeout(SE.pair,120);else SE.miss();
   G.lock=true;render(); // 2枚めくったら、表示が終わるまで他のカードは触れない
   const[a,b]=G.sel,p=G.p[G.cur];
   if(G.b[a].e===G.b[b].e){
@@ -111,29 +301,32 @@ function flip(i){
       G.sel=[];G.lock=false;G.msg=nm(e)+'のペア成立!';afterPair(p)},800);
   }else{
     setTimeout(()=>{G.b[a].s=G.b[b].s='down';G.sel=[];G.lock=false;
-      G.msg='ペアではありません。';turnEnd()},1300);
+      G.msg='ペアではありません。';turnEnd()},SHOWS[SHOW][1]); // 表向きで見せる時間(メニューで選べる)
   }
 }
 function turnEnd(){
   if(!G.b.some(c=>c.s==='down')){finish();return}
   G.cur=1-G.cur;G.ph='pick';render();
 }
-const nm=s=>E[s].n+'('+s+')';
-const rt=r=>Object.entries(r).map(([s,n])=>`${E[s].n}(${s}×${n})`).join(' + ');
-function recipes(){return`<details class=rc ${G.ro?'open':''} ontoggle="G.ro=this.open"><summary>レシピ一覧</summary>${Object.keys(C.compounds).map(k=>`<div class=ht>${rt(C.compounds[k].r)} = <b>${k}</b>(+${C.compounds[k].p}点)</div>`).join('')}</details>`}
+const nm=s=>C.nm(s);
+const rt=r=>Object.entries(r).map(([s,n])=>C.fmt(s,n)).join(' + ');
+function recipes(){return`<details class=rc ${G.ro?'open':''} ontoggle="G.ro=this.open"><summary>レシピ一覧</summary>${Object.keys(C.compounds).map(k=>`<div class=ht>${rt(C.compounds[k].r)} = <b${NT()}>${k}</b>(+${C.compounds[k].p}点)</div>`).join('')}</details>`}
 // 【仮】ペアを取るたびに、高得点になる組み合わせで自動融合する(化合物の基本点+役ボーナスが最大)
 function yakuTotal(p,list){const q={comps:{...p.comps},used:{...p.used}};list.forEach(k=>q.comps[k]=(q.comps[k]||0)+1);
   let t=0,y;while(y=findYaku(q)){for(const c in y.use)q.used[c]=(q.used[c]||0)+y.use[c];t+=y.y.b}return t}
 function bestFuse(p){
-  const ns=Object.keys(C.compounds);let best={sc:0,list:[]};
+  const key=Object.keys(p.cards).filter(k=>p.cards[k]>0).sort().map(k=>k+p.cards[k]).join();
+  if(FC[key])return FC[key].slice(); // 同じカードの組み合わせは計算をくりかえさない
+  const ns=Object.keys(C.compounds);let best={sc:0,list:[]},leaves=0;
   (function dfs(i,inv,list,base){
-    if(i===ns.length){const sc=base+(list.length?yakuTotal(p,list):0);if(sc>best.sc)best={sc,list:list.slice()};return}
+    if(leaves>40000)return; // 組み合わせが多すぎるときの安全装置
+    if(i===ns.length){leaves++;const sc=base+(list.length?yakuTotal(p,list):0);if(sc>best.sc)best={sc,list:list.slice()};return}
     const k=ns[i],r=C.compounds[k].r,v={...inv};let n=0;
     for(;;){dfs(i+1,{...v},list.concat(Array(n).fill(k)),base+n*C.compounds[k].p);
       if(!Object.entries(r).every(([x,q])=>(v[x]||0)>=q))break;
       for(const x in r)v[x]-=r[x];n++}
   })(0,{...p.cards},[],0);
-  return best.list;
+  FC[key]=best.list;return best.list.slice();
 }
 // 【仮】融合はあがるときに最終的に行う。途中は「いま融合したらどうなるか」を計算するだけ
 function calc(p,i){
@@ -143,8 +336,8 @@ function calc(p,i){
   while(y=findYaku(q)){for(const c in y.use)q.used[c]=(q.used[c]||0)+y.use[c];ys.push(y.y)}
   const yp=ys.reduce((a,v)=>a+v.b,0),junk=C.leftoverIsJunk?Object.values(inv).reduce((a,n)=>a+n,0):0;
   const jp=(C.junk.find(([n])=>junk>=n)||[0,0])[1],fb=i===G.first?C.firstBonus:0; // 【仮】先攻補正点はあがった人が先攻のときだけ
-  const left=Object.entries(inv).filter(([,n])=>n>0).map(([s,n])=>`${E[s].n}(${s}×${n})`).join('、');
-  const lines=list.map(k=>`${rt(C.compounds[k].r)} = <b>${k}</b>(+${C.compounds[k].p}点)`)
+  const left=Object.entries(inv).filter(([,n])=>n>0).map(([s,n])=>C.fmt(s,n)).join('、');
+  const lines=list.map(k=>`${rt(C.compounds[k].r)} = <b${NT()}>${k}</b>(+${C.compounds[k].p}点)`)
     .concat(ys.map(v=>`役「${v.n}」(+${v.b}点)`),left?['余り:'+left]:[]);
   return{list,inv,comps,cp,ys,yp,junk,jp,fb,lines,total:cp+yp+jp+fb};
 }
@@ -153,23 +346,23 @@ function afterPair(p){
   if(!c.list.length){ // 融合できるカードがないときは、あがり/こいこいを出さずにそのまま続ける
     if(!G.b.some(x=>x.s==='down')){finish();return}
     G.ph='pick';render();return}
-  G.pre=c;G.msg='融合できるカードがそろいました';G.ph='yaku';render();
+  SE.fuse();G.pre=c;G.msg='融合できるカードがそろいました';G.ph='yaku';render();
 }
 function findYaku(p){
   const av=k=>(p.comps[k]||0)-(p.used[k]||0);
-  for(const y of [...C.yaku].sort((x,z)=>z.b-x.b)){
+  for(const y of C.ys){
     if(y.distinct){const ks=Object.keys(C.compounds).filter(k=>av(k)>0);
       if(ks.length>=y.distinct)return{y,use:ks.slice(0,y.distinct).reduce((o,k)=>(o[k]=1,o),{})}}
     else if(Object.keys(y.need).every(k=>av(k)>=y.need[k]))return{y,use:y.need};
   }
   return null;
 }
-function agari(){ // あがり=ここで融合を確定して点数計算(得点できるのはあがった人だけ・ゲーム終了)
+function agari(){SE.agari(); // あがり=ここで融合を確定して点数計算(得点できるのはあがった人だけ・ゲーム終了)
   const p=G.p[G.cur],c=calc(p,G.cur);
   const nw=[...new Set(c.list)].filter(k=>!Z[k]);c.list.forEach(k=>Z[k]=(Z[k]||0)+1);saveZ();G.newK=nw; // 図鑑に登録
   Object.assign(p,{res:c,cards:c.inv,comps:c.comps,yakus:c.ys.map(v=>v.n)});
   G.winner=G.cur;G.msg=p.n+'があがり!';endGame()}
-function koikoi(){ // こいこい=ゲーム再開(同じ人が続けてめくる)
+function koikoi(){SE.koikoi(); // こいこい=ゲーム再開(同じ人が続けてめくる)
   G.banner='こいこい!';G.msg='こいこい!ゲーム再開';
   if(!G.b.some(c=>c.s==='down')){finish();return}
   G.ph='pick';render()}
@@ -178,39 +371,46 @@ function finish(){ // 【仮】だれもあがらずに札がなくなったら�
 // ===== 表示 =====
 function panel(p,i){
   const c=G.over?(G.winner===i?p.res:null):calc(p,i),pre=G.over?'':'(あがり時)';
-  const pr=Object.entries(p.cards).filter(([,n])=>n>0).map(([s,n])=>`<span class=ch style="--c:${E[s].c}">${s}×${n}</span>`).join('')||'なし';
-  const cm=c?Object.entries(c.comps).map(([k,n])=>`<span class=cp>${k}×${n}</span>`).join('')||'なし':'—';
+  const pr=Object.entries(p.cards).filter(([,n])=>n>0).map(([s,n])=>`<span class="ch${GAME==='kanji'?' nt':''}" style="--c:${E[s].c}">${s}×${n}</span>`).join('')||'なし';
+  const cm=c?Object.entries(c.comps).map(([k,n])=>`<span class="cp${GAME==='kanji'?' nt':''}">${k}×${n}</span>`).join('')||'なし':'—';
   const yk=c?c.ys.map(v=>v.n).join('、')||'なし':'—';
   const t=c?pre+c.total+'点':(G.over?'0点':'');
-  return `<div class="pl ${i===G.cur&&!G.over?'on':''}"><h3><span>${p.n}${i===G.first?'(先攻)':''}</span><span>${t}</span></h3>
+  return `<div class="pl ${i===G.cur&&!G.over?'on':''}"><h3><span>${p.icon?`<span class=ic>${p.icon}</span>`:''}${p.n}${i===G.first?'(先攻)':''}</span><span>${t}</span></h3>
   <div class=row>元素:${pr}</div><div class=row>化合物${pre}:${cm}</div><div class=row>役${pre}:${yk}</div><div class=row>カス${pre}:${c?c.junk+'枚':'—'}</div></div>`;
 }
 function card(c,i){
   if(c.s==='taken')return'<div class=slot></div>';
   if(c.s==='down')return`<button class="card back" onclick="flip(${i})" aria-label="裏向きのカード"></button>`;
-  const e=E[c.e];return`<div class="card face" style="--c:${e.c}"><b>${e.s}</b><i>${e.n}</i><small>${e.t}</small></div>`;
+  const e=E[c.e];return`<div class="card face${GAME==='kanji'?' nt':''}" style="--c:${e.c}"><b>${e.s}</b><i>${e.n}</i><small>${e.t}</small></div>`;
 }
 function act(){
   const p=G.p[G.cur];if(G.over)return'';
-  if(G.ph==='pick')return`${p.n}の手番:裏向きのカードを2枚めくってください`;
+  if(G.ph==='pick')return isCom()?'COMの手番:カードをめくっています…':`${p.n}の手番:裏向きのカードを2枚めくってください`;
   return'';
 }
 // あがり/こいこいは、融合したときだけカードの上に表示する
 function float(){
   if(G.over||G.ph!=='yaku')return'';
   const c=G.pre;
-  return`<div class=float><div class=box><div class=ht style="font-size:15px">いまあがると、次のように融合します</div>${c.lines.map(l=>`<div class=ht>${l}</div>`).join('')}<div class=ht style="font-size:16px">あがり時の点数:<b>${c.total}点</b></div><button class=b onclick=agari()>あがり(ゲーム終了)</button><button class="b g" onclick=koikoi()>こいこい(続ける)</button></div></div>`;
+  return`<div class=float><div class=box><div class=ht style="font-size:15px">いまあがると、次のように融合します</div>${c.lines.map(l=>`<div class=ht>${l}</div>`).join('')}<div class=ht style="font-size:16px">あがり時の点数:<b>${c.total}点</b></div>${isCom()?'<div class=ht>COMが選んでいます…</div>':'<button class=b onclick=agari()>あがり(ゲーム終了)</button><button class="b g" onclick=koikoi()>こいこい(続ける)</button>'}</div></div>`;
 }
+const KL=['ふたりで こうたいに あそぶよ。ふせてあるカードを 2まい めくって、おなじ げんそなら ペア!2まい もらえて、つづけて めくれるよ。','ちがうカードなら、うらに もどして あいての ばんに なるよ。','できたものは、もっている げんそカードの まいすうで きまるよ(したの ひょう)。つかわなかった カードは とっておけるよ。','くっつけられる カードが そろうと、「あがり」か「こいこい」を えらべるよ。','あがり:そのばで くっつけて てんを かぞえて、ゲームおわり。てんが もらえるのは あがったひとだけだよ。','こいこい:ゲームを つづけるよ。おなじひとが つづけて めくるよ。','くっつけかたは、いちばん てんが たかくなる くみあわせを じどうで えらぶよ。','くっつけなかった カードは「のこり」になるよ(1まい=のこり1まい)。','さいしょの ひとは、あがったとき +'+C.firstBonus+'てん。だれも あがらずに カードが なくなったら ひきわけだよ。','ゲームの かずは はじめに 1・3・5から えらぶよ。てんが おおいひと(あがったひと)が ゲームに かち。かった ゲームが おおいほうが しょうぶの かちだよ(おなじなら ぜんぶの てんが おおいほう)。','コンピュータと あそぶときも おなじ ルールだよ。コンピュータは めくった カードを すこし おぼえているよ。つよさは「やさしい・ふつう・つよい」から えらべるよ。'];
+const NT=()=>GAME==='kanji'?' class=nt':'';
+const HR='もじは ゲームごとに ランダムに 13しゅるい えらばれるよ。えらばれた もじで ことばが つくれるから、あそびながら ひらがなを おぼえよう!',KR='かんじは ゲームごとに ランダムに 13しゅるい えらばれるよ。したの がくねんで ならう かんじも はいるよ。';
+const KLH=['ふたりで こうたいに あそぶよ。ふせてあるカードを 2まい めくって、おなじ もじなら ペア!2まい もらえて、つづけて めくれるよ。',HR,KL[1],'ことばは、もっている もじカードの まいすうで つくれるよ(したの ひょう)。たとえば「や」と「ま」で「やま」。つかわなかった カードは とっておけるよ。','ことばが つくれる カードが そろうと、「あがり」か「こいこい」を えらべるよ。','あがり:そのばで ことばを つくって てんを かぞえて、ゲームおわり。てんが もらえるのは あがったひとだけだよ。',KL[5],'ことばは、いちばん てんが たかくなる くみあわせを じどうで えらぶよ。3もじの ことばは てんが たかいよ。','ことばに しなかった カードは「のこり」になるよ(1まい=のこり1まい)。',KL[8],KL[9],KL[10]];
+const KLK=KLH.map(t=>t===HR?KR:t.replace(/もじカード/g,'かんじカード').replace(/もじ/g,'かんじ').replace(/ことば/g,'じゅくご').replace('「や」と「ま」で「やま」','「大」と「人」で「大人」'));
 function rulesHTML(){
   const jk=[...C.junk].sort((a,b)=>a[0]-b[0]);
   const jt=jk.map(([n,p],i)=>`${n}${jk[i+1]?'〜'+(jk[i+1][0]-1)+'枚':'枚以上'}:${p}点`).join('、')+`(${jk[0][0]-1}枚以下:0点)`;
-  const L=['2人で交代します。裏向きのカードを2枚めくり、同じ元素ならペア成立。2枚を獲得して、続けてめくれます。','違う元素なら、裏に戻して相手の番になります。','化合物は、獲得した元素カードの枚数で決まります(下の融合リスト)。使わなかったカードは持ち越せます。','融合できるカードがそろうと、「あがり」か「こいこい」を選べます。','あがり:その場で融合して点数を計算し、ゲーム終了。得点できるのはあがった人だけです。','こいこい:ゲーム再開。同じ人が続けてめくります。','融合は、手持ちのカードで一番高得点になる組み合わせを自動で選びます。','融合に使わず残ったカードは、カス(1枚=1枚)になります。','先攻はあがったときに+'+C.firstBonus+'点。だれもあがらずに札がなくなったら引き分けです。','ゲーム数は最初に1・3・5から選びます。ゲームに勝つのは得点が多い方(あがった人)で、勝ったゲームが多い方がマッチの勝者です(同数なら累計点)。先攻はゲームごとに交代します。'];
+  const L=GAME==='hira'?KLH:(GAME==='kanji'&&kid())?KLK:(GAME==='element'&&KID)?KL:['2人で交代します。裏向きのカードを2枚めくり、同じ元素ならペア成立。2枚を獲得して、続けてめくれます。','違う元素なら、裏に戻して相手の番になります。','化合物は、獲得した元素カードの枚数で決まります(下の融合リスト)。使わなかったカードは持ち越せます。','融合できるカードがそろうと、「あがり」か「こいこい」を選べます。','あがり:その場で融合して点数を計算し、ゲーム終了。得点できるのはあがった人だけです。','こいこい:ゲーム再開。同じ人が続けてめくります。','融合は、手持ちのカードで一番高得点になる組み合わせを自動で選びます。','融合に使わず残ったカードは、カス(1枚=1枚)になります。','先攻はあがったときに+'+C.firstBonus+'点。だれもあがらずに札がなくなったら引き分けです。','ゲーム数は最初に1・3・5から選びます。ゲームに勝つのは得点が多い方(あがった人)で、勝ったゲームが多い方がマッチの勝者です(同数なら累計点)。先攻はゲームごとに交代します。','COMと対戦(1人)では、COMも同じルールで遊びます。COMは、めくられたカードをある程度覚えています。強さは、やさしい・普通・強いから選べます。'];
   return`<h3 style="margin-top:0">遊び方</h3>${L.map((t,i)=>`<div class=ht>${i+1}. ${t}</div>`).join('')}
-  <h3>融合リスト</h3>${Object.keys(C.compounds).map(k=>`<div class=ht>${rt(C.compounds[k].r)} = <b>${k}</b>(+${C.compounds[k].p}点)</div>`).join('')}
+  <h3>融合リスト</h3>${Object.keys(C.compounds).map(k=>`<div class=ht>${rt(C.compounds[k].r)} = <b${NT()}>${k}</b>(+${C.compounds[k].p}点)</div>`).join('')}
   <h3>役リスト(化合物の組み合わせ)</h3>${C.yaku.map(y=>`<div class=ht><b>${y.n}</b>:${y.distinct?'異なる化合物'+y.distinct+'種類':Object.entries(y.need).map(([k,n])=>n>1?k+'×'+n:k).join(' + ')}(+${y.b}点)</div>`).join('')}
   <h3>カス点</h3><div class=ht>${jt}</div>`;
 }
 function zukanHTML(){
+  if(C.dynamic){const ks=Object.keys(Z).sort(); // 漢字ゲーム:作った熟語だけをならべる(学年ごとに記録)
+    return`<h3 style="margin-top:0">化合物図鑑 ${ks.length}/${C.zTotal}</h3><div class=zk>${ks.map(k=>`<div class="zc on"><b class=nt style="font-size:15px">${k}</b><div class=ht>作った回数 ${Z[k]}回</div></div>`).join('')||'<div class=ht>まだ作っていません</div>'}</div><div style="margin-top:8px"><button class="b g sm" onclick=resetZ()>記録を消す</button></div>`}
   const ks=Object.keys(C.compounds);
   return`<h3 style="margin-top:0">化合物図鑑 ${ks.filter(k=>Z[k]).length}/${ks.length}</h3><div class=zk>${ks.map(k=>{const n=Z[k],e=C.compounds[k];
     return n?`<div class="zc on"><b style="font-size:15px">${k}</b><div class=ht>${rt(e.r)}</div><div class=ht>+${e.p}点 / 作った回数 ${n}回</div></div>`
@@ -238,16 +438,33 @@ function modal(){
   <tr><td>合計</td>${[0,1].map(i=>`<td>${w===i?'<b>'+G.p[i].res.total+'点</b>':'0点(あがりなし)'}</td>`).join('')}</tr></table>
   ${matchHTML()}</div></div>`;
 }
+// 上の欄・下のボタンを引いた残りの高さに、カードがぜんぶ入る一番大きいサイズを選ぶ(入らないときは小さめにして、上の欄は固定表示)
+function fit(){
+  const q=x=>document.querySelector&&document.querySelector(x),bw=q('.bw');
+  if(!bw||!G)return;
+  const n=G.b.length,H=bw.clientHeight,W=bw.clientWidth,gap=4;
+  if(H<=0||W<=0)return;
+  let best=null; // 残りの広さに、カードぜんぶが入る一番大きいサイズ(列の数)を選ぶ
+  for(let c=4;c<=13;c++){const rows=Math.ceil(n/c),cw=Math.min((W-gap*(c-1))/c,((H-gap*rows)/rows)*.75);
+    if(!best||cw>best.cw)best={c,cw}}
+  const st=document.documentElement.style;
+  st.setProperty('--cols',best.c);st.setProperty('--cw',Math.max(24,best.cw)+'px');
+}
 function render(){
-  if(!M){$('app').innerHTML=`${nav()}<div style="text-align:center;margin:40px 0"><h2>元素カードゲーム</h2><p>何ゲーム勝負にしますか?</p>${[1,3,5].map(n=>`<button class=b onclick="start(${n})">${n}ゲーム勝負</button>`).join('')}<p class=ht>各ゲームは、得点が多い方(あがった人)の勝ち。勝ったゲームが多い方がマッチの勝者です。</p></div>${V?modal():''}`;return}
-  const cols=Math.max(4,Math.min(13,Math.floor((innerWidth-16)/58)));
+  $('app').className=M?'game':'';
+  if(!M){$('app').innerHTML=`${nav()}<div style="text-align:center;margin:40px 0"><h2>${C.title}</h2><p>ゲームを選んでください</p><button class="b${GAME==='element'?'':' g'}" onclick="setGame('element')">${GAME==='element'?'元素カードゲーム':'げんそカードゲーム'}</button><button class="b${GAME==='hira'?'':' g'}" onclick="setGame('hira')">ひらがなカードゲーム</button><button class="b${GAME==='kanji'?'':' g'}" onclick="setGame('kanji')">かんじカードゲーム</button>${GAME==='kanji'?`<p>学年を選んでください</p>${[1,2,3,4,5,6].map(i=>`<button class="b${GRADE===i?'':' g'}" onclick="setGrade(${i})">${i}年生</button>`).join('')}<p class=ht>下の学年でならう漢字も入ります。漢字は毎回ランダムです。</p>`:''}<p>対戦相手を選んでください</p><button class="b${MODE==='com'?'':' g'}" onclick="setMode('com')">COMと対戦(1人)</button><button class="b${MODE==='pvp'?'':' g'}" onclick="setMode('pvp')">2人で対戦</button>${MODE==='com'?`<p>COMの強さ</p>${Object.keys(C.comLevels).map(l=>`<button class="b${LEVEL===l?'':' g'}" onclick="setLevel('${l}')">${l}</button>`).join('')}`:''}<p>${MODE==='com'?'あなた':'プレイヤー1'}のアイコン</p>${iconBtns(0)}${MODE==='pvp'?`<p>プレイヤー2のアイコン</p>${iconBtns(1)}`:''}<p>カードを見せる時間</p>${SHOWS.map((x,i)=>`<button class="b${SHOW===i?'':' g'}" onclick="setShow(${i})">${x[0]}(${x[1]/1000}秒)</button>`).join('')}${MODE==='com'?`<p class=ht>COMのアイコン(どれかが出ます):${CICONS[LEVEL].map(x=>`<span class=ic>${x[1]}</span>`).join('')}</p>`:''}<p>何ゲーム勝負にしますか?</p>${[1,3,5].map(n=>`<button class=b onclick="start(${n})">${n}ゲーム勝負</button>`).join('')}<p class=ht>各ゲームは、得点が多い方(あがった人)の勝ち。勝ったゲームが多い方がマッチの勝者です。</p></div>${V?modal():''}`;kanaDom();return}
+  const cols=Math.max(4,Math.min(13,Math.floor((innerWidth-16)/52)));
   const cw=(Math.min(innerWidth,1100)-16-4*(cols-1))/cols;
   document.documentElement.style.setProperty('--cols',cols);
   document.documentElement.style.setProperty('--cw',cw+'px');
-  $('app').innerHTML=`${nav()}<div class=top>${G.p.map(panel).join('')}</div><div class=msg>${G.msg||''}</div>
-  <div class=bw>${G.banner?`<div class=banner>${G.banner}</div>`:''}${float()}<div class=board>${G.b.map(card).join('')}</div></div><div class=act>${act()}</div>${modal()}${recipes()}`;
+  $('app').innerHTML=`<div class=hd>${nav()}<div class=top>${G.p.map(panel).join('')}</div><div class=msg>${G.msg||''}</div></div>
+  <div class=bw>${G.banner?`<div class=banner>${G.banner}</div>`:''}${float()}<div class=board>${G.b.map(card).join('')}</div></div><div class=act>${act()}</div>${modal()}`;
   G.banner='';
+  kanaDom();
+  fit();
+  comStep();
 }
 addEventListener('resize',()=>render());
+useSet('element');
 render();
 </script></body></html>
