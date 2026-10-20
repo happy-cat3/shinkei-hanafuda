@@ -50,6 +50,8 @@ td,th{border-bottom:1px solid #223052;padding:4px}
 .ic{display:inline-block;width:32px;height:32px;line-height:32px;text-align:center;vertical-align:middle;margin-right:4px}.ic svg{width:100%;height:100%;display:block}
 .lh{display:flex;gap:12px;align-items:center;margin-bottom:6px}.lu{height:150px;width:auto;flex:0 0 auto;filter:drop-shadow(0 2px 6px #000a)}
 .lb{position:relative;background:#16254a;border-radius:12px;padding:8px 10px;font-size:14px;line-height:1.5}.lb:before{content:"";position:absolute;left:-8px;top:26px;border:8px solid transparent;border-left:0;border-right-color:#16254a}
+.mn{text-align:center;margin:14px 0}.mn h2{margin:6px 0}.mn p{margin:10px 0 4px}.mn button.b.sm{margin:3px}
+.adv{margin:12px 0 4px;border:1px solid #223052;border-radius:8px;padding:6px 10px}.adv summary{cursor:pointer;color:#9fb0d6;padding:4px}
 .ms{margin-right:auto;font-size:13px;color:#FFEB3B}
 .nav{flex-wrap:wrap;display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px}
 button.b.sm{padding:6px 12px;font-size:13px;margin:0}
@@ -104,8 +106,9 @@ const CONFIG={
 // ===== ゲーム本体 =====
 // ===== ひらがなカードゲーム(ことばづくり)の設定。ルールは元素ゲームと同じ:ペアでカードを集め、あがるときに「ことば」を自動で作って点にする =====
 const SETS={element:CONFIG,hira:{...CONFIG,name:'ひらがな',title:'ひらがなカードゲーム',zkey:'elemZukanHira',noun:'ことば',nm:s=>s,fmt:(s,n)=>`${s}×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]},
-  kanji:{...CONFIG,name:'漢字',title:'漢字カードゲーム',noun:'熟語',get zkey(){return 'elemZukanKanji'+GRADE},nm:s=>`<span class=nt>${s}</span>`,fmt:(s,n)=>`<span class=nt>${s}</span>×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]},
-  alpha:{...CONFIG,name:'アルファベット',title:'アルファベットカードゲーム',zkey:'elemZukanAlpha',noun:'単語',nm:s=>s,fmt:(s,n)=>`${s}×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]}};
+  kanji:{...CONFIG,name:'漢字',title:'かんじカードゲーム',noun:'熟語',get zkey(){return 'elemZukanKanji'+GRADE},nm:s=>`<span class=nt>${s}</span>`,fmt:(s,n)=>`<span class=nt>${s}</span>×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]},
+  alpha:{...CONFIG,name:'アルファベット',title:'アルファベットカードゲーム',zkey:'elemZukanAlpha',noun:'単語',nm:s=>s,fmt:(s,n)=>`${s}×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]},
+  kata:{...CONFIG,name:'カタカナ',title:'カタカナカードゲーム',zkey:'elemZukanKata',noun:'ことば',nm:s=>s,fmt:(s,n)=>`${s}×${n}`,dynamic:true,elements:[],compounds:{},yaku:[]}};
 const KJ=["", "一右雨円王音下火花貝学気九休玉金空月犬見五口校左三山子四糸字耳七車手十出女小上森人水正生青夕石赤千川先早草足村大男竹中虫町天田土二日入年白八百文木本名目立力林六", "引羽雲園遠何科夏家歌画回会海絵外角楽活間丸岩顔汽記帰弓牛魚京強教近兄形計元言原戸古午後語工公広交光考行高黄合谷国黒今才細作算止市矢姉思紙寺自時室社弱首秋週春書少場色食心新親図数西声星晴切雪船線前組走多太体台地池知茶昼長鳥朝直通弟店点電刀冬当東答頭同道読内南肉馬売買麦半番父風分聞米歩母方北毎妹万明鳴毛門夜野友用曜来里理話", "悪安暗医委意育員院飲運泳駅央横屋温化荷界開階寒感漢館岸起期客究急級宮球去橋業曲局銀区苦具君係軽血決研県庫湖向幸港号根祭皿仕死使始指歯詩次事持式実写者主守取酒受州拾終習集住重宿所暑助昭消商章勝乗植申身神真深進世整昔全相送想息速族他打対待代第題炭短談着注柱丁帳調追定庭笛鉄転都度投豆島湯登等動童農波配倍箱畑発反坂板皮悲美鼻筆氷表秒病品負部服福物平返勉放味命面問役薬由油有遊予羊洋葉陽様落流旅両緑礼列練路和", "愛案以衣位茨印英栄媛塩岡億加果貨課芽賀改械害街各覚潟完官管関観願岐希季旗器機議求泣給挙漁共協鏡競極熊訓軍郡群径景芸欠結建健験固功好香候康佐差菜最埼材崎昨札刷察参産散残氏司試児治滋辞鹿失借種周祝順初松笑唱焼照城縄臣信井成省清静席積折節説浅戦選然争倉巣束側続卒孫帯隊達単置仲沖兆低底的典伝徒努灯働特徳栃奈梨熱念敗梅博阪飯飛必票標不夫付府阜富副兵別辺変便包法望牧末満未民無約勇要養浴利陸良料量輪類令冷例連老労録", "圧囲移因永営衛易益液演応往桜可仮価河過快解格確額刊幹慣眼紀基寄規喜技義逆久旧救居許境均禁句型経潔件険検限現減故個護効厚耕航鉱構興講告混査再災妻採際在財罪殺雑酸賛士支史志枝師資飼示似識質舎謝授修述術準序招証象賞条状常情織職制性政勢精製税責績接設絶祖素総造像増則測属率損貸態団断築貯張停提程適統堂銅導得毒独任燃能破犯判版比肥非費備評貧布婦武復複仏粉編弁保墓報豊防貿暴脈務夢迷綿輸余容略留領歴", "胃異遺域宇映延沿恩我灰拡革閣割株干巻看簡危机揮貴疑吸供胸郷勤筋系敬警劇激穴券絹権憲源厳己呼誤后孝皇紅降鋼刻穀骨困砂座済裁策冊蚕至私姿視詞誌磁射捨尺若樹収宗就衆従縦縮熟純処署諸除承将傷障蒸針仁垂推寸盛聖誠舌宣専泉洗染銭善奏窓創装層操蔵臓存尊退宅担探誕段暖値宙忠著庁頂腸潮賃痛敵展討党糖届難乳認納脳派拝背肺俳班晩否批秘俵腹奮並陛閉片補暮宝訪亡忘棒枚幕密盟模訳郵優預幼欲翌乱卵覧裏律臨朗論"]; // 学年別漢字配当表(平成29年告示)。KJ[学年]=その学年でならう漢字
 const WORDS_RAW="一人 二人 三日 九月 十月 七月 一年 六年 人口 大人 小人 女子 男子 子犬 先生 学校 青空 天気 花火 火山 森林 水田 土日 日本 本気 草花 草木 竹林 早口 足音 千円 百円 左右 上下 出口 入口 下校 大学 大木 大石 大雨 小雨 小石 小川 小山 村人 町中 文字 名人 王女 白山 小学生 出入口 左手 右手 月日 山川 目玉 正月 見学 水玉 手足 気力 立木 正午 外国 海水 学園 毎日 友人 母校 会社 自分 算数 国語 学年 体力 電車 電気 来年 今年 先月 今日 明日 毎年 新年 本当 市場 時間 直線 外食 東西 南北 前後 公園 里山 工作 行楽 語学 魚市場 弟子 兄弟 姉妹 父母 馬車 牛肉 肉食 麦茶 茶色 黄色 黒雲 雲海 雪山 雪国 春風 夏空 秋風 冬空 星空 朝食 昼食 夕食 会話 読書 書道 計算 作文 絵画 画家 歌手 地図 数学 回数 帰国 通学 弱気 強気 元気 天才 後半 半分 台風 西風 北風 南風 東京 光線 長話 新聞 野原 野鳥 公道 合図 足元 旅行 運動 動物 植物 野球 地球 港町 駅前 病気 病院 医者 薬局 銀行 住所 都会 練習 勉強 宿題 勝負 安全 研究 感動 荷物 乗客 昔話 都市 美人 神社 神様 表面 氷水 農業 農家 発表 発車 発音 速度 大根 根気 世界 開始 終点 重力 柱時計 全員 委員 駅員 店員 悪人 意見 運転 屋上 屋根 温度 学期 期待 急行 急用 係員 決定 県道 湖水 幸運 号外 祭日 作者 使用 指先 歯車 詩集 事実 実話 写真 主人 習字 集会 重大 暑中 助手 消化 商店 乗車 植木 身長 真実 深海 進行 整理 全身 相手 送別 想像 息子 打者 対話 代表 題名 炭火 短歌 談話 着物 注意 帳面 調子 定食 庭園 鉄道 転校 投手 島国 湯船 登山 等分 童話 農村 配達 倍数 箱庭 発明 反対 坂道 皮肉 悲話 美化 鼻水 筆記 氷山 表紙 秒針 病室 品物 負傷 部屋 服装 幸福 物語 平和 返事 勉学 放送 味方 命中 面会 問題 役場 薬草 理由 石油 有名 遊園地 予定 羊毛 洋服 太陽 様子 落葉 流星 旅館 両手 緑茶 礼服 列車 道路 和食 給食 結果 季節 満月 無事 特別 自然 努力 愛犬 記念 運動会 成功 戦争 勇気 利用 約束 要点 陸地 観光 関係 競走 位置 以上 以下 以前 衣服 季語 器用 機会 機械 議会 求人 漁船 協力 共通 英語 栄養 塩分 加工 果実 貨物 課題 改良 害虫 街道 各国 完成 願書 希望 旗手 給料 軍隊 景色 欠席 建物 健康 固体 好意 香水 気候 差別 菜園 最高 材木 昨日 札束 印刷 観察 参加 産地 散歩 残念 試験 児童 治療 辞典 失敗 借金 種類 周囲 祝日 順番 初夏 松林 笑顔 唱歌 焼肉 照明 城下 信号 省略 清水 静止 席順 積雪 折紙 節約 説明 浅海 戦力 選手 倉庫 巣箱 側面 続行 卒業 隊列 達成 単語 仲間 底力 的中 辞書 伝言 徒歩 灯台 特急 得点 熱帯 敗北 梅雨 博士 飛行 必要 不安 夫婦 付近 別人 変化 便利 法律 牧場 末期 満員 未来 民話 無人 勇者 要求 養分 浴室 利子 陸上 良心 料理 冷水 例外 連続 老人 労力 記録 労働 作法 経験 資料 国際 状態 輸出 輸入 貿易 備品 評判 銅像 銅山 武士 武力 製品 製造 構造 保護 規則 基本 基地 移動 営業 衛生 永久 液体 演奏 応用 往復 可能 仮定 価格 河川 過去 快適 解決 格言 刊行 幹線 慣習 眼科 紀行 寄付 喜劇 技術 義務 逆転 旧道 救急 居間 許可 境界 平均 禁止 句読点 型紙 潔白 条件 検査 現在 減少 個人 効果 厚紙 耕作 航海 鉱山 構成 興味 告白 混合 調査 再開 災害 採点 在庫 財産 犯罪 雑誌 酸素 賛成 支店 歴史 志望 教師 飼育 指示 意識 品質 校舎 感謝 授業 修理 準備 順序 招待 証明 印象 賞品 条約 異常 感情 織物 職業 制限 性格 政治 勢力 精神 税金 責任 成績 接近 設計 絶対 祖父 祖母 素直 総合 造船 増加 測定 所属 損害 貸家 態度 団体 判断 貯金 主張 停止 提案 程度 適当 統一 食堂 導入 得意 独立 任務 燃料 能力 犯人 判定 出版 肥料 非常 費用 評価 貧富 布団 婦人 武道 回復 複数 仏像 粉末 編集 弁当 墓地 報告 豊富 防火 暴力 事務 夢中 迷子 綿花 輸送 余分 容器 略図 留守 領土 歴代 宇宙 郵便 郵便局 若者 骨折 勤務 砂糖 糖分 紅葉 皇室 朗読 論文 劇場 映画 映像 簡単 宝物 宝石 窓口 難問 卵黄 閉店 閉館 開閉 暖冬 胃腸 異常 遺産 地域 延長 沿線 恩人 灰色 拡大 革命 閣議 割合 株式 干潮 巻物 看板 簡潔 危険 机上 指揮 貴重 疑問 吸収 提供 郷土 勤労 筋肉 系統 敬意 警察 券売 絹糸 権利 憲法 源氏 厳重 自己 呼吸 誤解 皇后 孝行 紅白 降水 鋼鉄 穀物 骨格 困難 砂場 座席 経済 裁判 対策 冊数 至急 私立 姿勢 視力 作詞 磁石 発射 尺度 若草 樹木 収入 宗教 就職 大衆 従来 縦横 縮小 成熟 純白 処理 署名 諸国 除去 承知 将来 障子 蒸気 針金 垂直 推理 寸法 全盛 聖火 誠意 宣言 専門 洗面 染色 銭湯 親善 創作 装置 体操 内臓 存在 尊重 退場 住宅 担当 探検 誕生 段階 価値 忠実 著者 官庁 頂上 賃金 展開 討論 政党 乳牛 認定 納入 頭脳 派手 拝見 背中 俳句 班長 晩年 否定 批判 秘密 土俵 腹痛 奮戦 並木 陛下 閉会 片道 補給 訪問 死亡 忘年会 枚数 密集 模型 郵送 優勝 預金 幼虫 翌日 混乱 裏口"; // 熟語リスト(学年は使われる漢字の最大学年で自動判定。配当表にない漢字を含む語は自動で除く)
 const KG={};KJ.forEach((t,g)=>[...t].forEach(c=>KG[c]=g));
@@ -179,7 +182,7 @@ const junkT=()=>C.junk.map(([n,p])=>[Math.max(1,Math.round(n*DECK*4/52)),p]); //
 const AW_RAW="go:いく up:うえ no:いいえ on:うえに in:なかに it:それ is:です am:です he:かれ me:わたし my:わたしの we:わたしたち do:する to:へ so:とても us:わたしたち be:である cat:ねこ dog:いぬ pig:ぶた cow:うし hen:めんどり bee:みつばち ant:あり bat:こうもり rat:ねずみ fox:きつね owl:ふくろう ape:さる bug:むし sun:たいよう sky:そら sea:うみ red:あか big:おおきい hot:あつい new:あたらしい old:ふるい run:はしる sit:すわる eat:たべる cup:コップ pen:ペン bag:かばん box:はこ bed:ベッド bus:バス car:くるま hat:ぼうし key:かぎ map:ちず egg:たまご eye:め ear:みみ leg:あし arm:うで toy:おもちゃ pie:パイ jam:ジャム tea:おちゃ ice:こおり day:ひ man:おとこのひと boy:おとこのこ mom:おかあさん dad:おとうさん kid:こども yes:はい you:あなた one:いち two:に six:ろく ten:じゅう zoo:どうぶつえん mud:どろ sad:かなしい fun:たのしい top:てっぺん win:かつ wet:ぬれた fan:せんぷうき net:あみ pet:ペット lip:くちびる job:しごと bird:とり fish:さかな frog:かえる duck:あひる lion:ライオン bear:くま deer:しか goat:やぎ wolf:おおかみ crab:かに swan:はくちょう book:ほん desk:つくえ door:ドア ball:ボール cake:ケーキ milk:ぎゅうにゅう rice:ごはん soup:スープ corn:とうもろこし bean:まめ nose:はな face:かお hand:て foot:あし head:あたま king:おうさま star:ほし moon:つき rain:あめ snow:ゆき wind:かぜ tree:き leaf:は rose:バラ blue:あお pink:ピンク gold:きん cold:さむい warm:あたたかい nice:すてき good:よい play:あそぶ read:よむ sing:うたう jump:とぶ walk:あるく swim:およぐ home:いえ farm:のうじょう park:こうえん ship:ふね boat:ボート bike:じてんしゃ road:みち bell:ベル ring:ゆびわ gift:おくりもの coat:コート shoe:くつ hair:かみのけ apple:りんご bread:パン chair:いす clock:とけい cloud:くも dream:ゆめ earth:ちきゅう flute:フルート grape:ぶどう green:みどり happy:うれしい horse:うま house:いえ lemon:レモン mouse:ねずみ music:おんがく panda:パンダ pizza:ピザ plant:しょくぶつ river:かわ robot:ロボット sheep:ひつじ shirt:シャツ smile:えがお snake:へび spoon:スプーン sweet:あまい table:テーブル tiger:とら water:みず whale:くじら white:しろ zebra:しまうま candy:キャンディ cream:クリーム peach:もも melon:メロン tooth:は mouth:くち train:でんしゃ tulip:チューリップ lunch:ひるごはん"; // 単語:意味(ひらがな)。同じ文字の組み合わせは1つだけ使う
 const MEAN={},ALLA=[];{const seen=new Set();AW_RAW.split(/\s+/).forEach(x=>{const[w,m]=x.split(':');
   if(!/^[a-z]{2,5}$/.test(w))return;const key=[...w].sort().join('');if(seen.has(key))return;seen.add(key);MEAN[w]=m||'';ALLA.push({k:w})})}
-const dn=k=>GAME==='alpha'&&MEAN[k]?`${k}(${MEAN[k]})`:k; // 単語の表示:cat(ねこ)
+const dn=k=>{const m=GAME==='alpha'?MEAN:GAME==='kata'?MEANK:null;return m&&m[k]?`${k}(${m[k]})`:k}; // 単語の表示:cat(ねこ)
 // 【仮】ゲームのたびに、単語をもとにアルファベットDECK種類をランダムに選ぶ。2文字=3点、3文字=6点、4文字=9点、5文字=12点
 function buildAlpha(){
   const ws=ALLA,set=new Set(),up=w=>[...w.k.toUpperCase()],nw=w=>[...new Set(up(w))].filter(c=>!set.has(c));
@@ -196,10 +199,32 @@ function buildAlpha(){
   C.yaku=[];C.ys=[];C.zTotal=ws.length;
   E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});FC={};
 }
+// ===== カタカナカードゲーム:カタカナをゲームごとにランダムに選び、ことばを作る(濁点・小さい字・のばす棒は使わない46文字) =====
+const KATA46='アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン';
+const ROWOFK={};['アイウエオ','カキクケコ','サシスセソ','タチツテト','ナニヌネノ','ハヒフヘホ','マミムメモ','ヤユヨ','ラリルレロ','ワヲン'].forEach(r=>[...r].forEach(c=>ROWOFK[c]=r[0]+'行'));
+const KW_RAW="カメ:かめ ネコ:ねこ イヌ:いぬ ウマ:うま サル:さる クマ:くま カニ:かに ハチ:はち アリ:あり セミ:せみ サケ:さけ タコ:たこ イカ:いか ハト:はと ワニ:わに カモ:かも ツル:つる カエル:かえる ムシ:むし ホタル:ほたる カラス:からす キツネ:きつね タヌキ:たぬき ヤモリ:やもり イルカ:いるか ライオン:lion コアラ:koala ラマ:llama ヒマワリ:ひまわり サクラ:さくら ナシ:なし ミカン:みかん モモ:もも ナス:なす コメ:こめ マメ:まめ ハナ:はな ヤマ:やま ウミ:うみ カワ:かわ ソラ:そら ツキ:つき ホシ:ほし ハル:はる ナツ:なつ アキ:あき フユ:ふゆ イス:いす ノリ:のり カメラ:camera トマト:tomato ミルク:milk マスク:mask ナイフ:knife ホテル:hotel テスト:test メモ:memo メロン:melon レモン:lemon ミント:mint タオル:towel テント:tent ハム:ham ココア:cocoa ミシン:sewing-machine ヒント:hint マイク:microphone ライス:rice ミス:miss ナイス:nice ライト:light ナイロン:nylon タイヤ:tire テニス:tennis ホルン:horn ミニ:mini ナイト:night ネクタイ:necktie リモコン:remote-control レトロ:retro コイン:coin アイス:ice アイロン:iron ミサイル:missile アルミ:aluminum"; // ことば:意味(動物・植物はひらがな、外来語は英語)。同じ文字の組み合わせは1つだけ使う
+const MEANK={},ALLK=[];{const seen=new Set();KW_RAW.split(/\s+/).forEach(x=>{const[w,m]=x.split(':');
+  if(w.length<2||w.length>5||![...w].every(c=>KATA46.includes(c)))return;const key=[...w].sort().join('');if(seen.has(key))return;seen.add(key);MEANK[w]=m||'';ALLK.push({k:w})})}
+// 【仮】ゲームのたびに、ことばをもとにカタカナDECK種類をランダムに選ぶ。2文字=3点、3文字=6点、4文字=9点、5文字=12点
+function buildKata(){
+  const ws=ALLK,set=new Set(),nw=w=>[...new Set(w.k)].filter(c=>!set.has(c));
+  for(let i=0;i<300&&set.size<DECK;i++){
+    const cand=ws.filter(w=>{const n=nw(w).length;return n>0&&set.size+n<=DECK});
+    if(!cand.length)break;
+    const near=cand.filter(w=>nw(w).length<=1),top=set.size&&near.length?near:cand;
+    nw(top[Math.random()*top.length|0]).forEach(c=>set.add(c));
+  }
+  const rest=[...KATA46].filter(c=>!set.has(c));
+  while(set.size<DECK)set.add(rest.splice(Math.random()*rest.length|0,1)[0]);
+  C.elements=[...set].sort(()=>Math.random()-.5).map((c,i)=>[c,'',ROWOFK[c],PAL[i]]);
+  C.compounds={};ws.filter(w=>[...w.k].every(c=>set.has(c))).forEach(w=>{const r={};[...w.k].forEach(c=>r[c]=(r[c]||0)+1);C.compounds[w.k]={r,p:(w.k.length-1)*3}});
+  C.yaku=[];C.ys=[];C.zTotal=ws.length;
+  E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});FC={};
+}
 const setGrade=g=>{GRADE=g;KT=table();loadZ();buildKanji();render()};
 let GAME='element',C=SETS.element,E={},KT=[],FC={};
 function useSet(g){GAME=g;C=SETS[g];E={};C.elements.forEach(([s,n,t,c])=>E[s]={s,n,t,c});
-  C.ys=[...C.yaku].sort((x,z)=>z.b-x.b);KT=table();FC={};loadZ();if(g==='kanji')buildKanji();if(g==='hira')buildHira();if(g==='alpha')buildAlpha();if(g==='element')buildElement()}
+  C.ys=[...C.yaku].sort((x,z)=>z.b-x.b);KT=table();FC={};loadZ();if(g==='kanji')buildKanji();if(g==='hira')buildHira();if(g==='alpha')buildAlpha();if(g==='kata')buildKata();if(g==='element')buildElement()}
 function setGame(g){useSet(g);SHOW=g==='kanji'?1:0;render()} // 漢字ゲームは最初から「ゆっくり」(あとから変えられる)
 const setShow=i=>{SHOW=i;render()};
 // ===== サイトを開いたときの「あそびかた」説明(「次から表示しない」で、次からは出さない) =====
@@ -277,7 +302,7 @@ const KANA=[ // [元の文言, ひらがな]。長い文言から順に置きか
 ['閉じる','とじる'],['続ける','つづける'],['種類','しゅるい'],['組み合わせ','くみあわせ'],['余り:','のこり:'],['先攻','さいしょ'],
 ['普通','ふつう'],['強い','つよい'],['役「','やく「'],['合計','ぜんぶで'],['以上','いじょう'],['以下','いか'],['融合','くっつける'],
 ['カス','のこり'],['COM','コンピュータ'],['鉄','てつ'],['銅','どう'],['水','みず'],['役','やく'],['点','てん'],['枚','まい'],['回','かい'],
-['勝','かち'],['第','だい'],['音','おと'],['COMのアイコン(どれかが出ます)','コンピュータの アイコン(どれかが でるよ)'],['秒','びょう'],['カードの枚数','カードの まいすう'],['COMと対戦するときは、強さに合わせたBGMが流れます','コンピュータと たいせんする ときは、つよさに あわせた BGMが ながれるよ'],['役の難しさ(作るものの種類の数)','やくの むずかしさ(つくる ものの しゅるいの かず)'],['カードが24枚のときは、1つ下がります','カードが 24まいの ときは、1つ へるよ'],['(あがるには、この役が必要)','(あがるには この やくが ひつよう)'],['(札がなくなって、点数で決定)','(カードが なくなって、てんで きまったよ)'],['役ができました','やくが できたよ'],['カードを見せる時間','カードを みせる じかん']].sort((a,b)=>b[0].length-a[0].length);
+['勝','かち'],['第','だい'],['音','おと'],['COMのアイコン(どれかが出ます)','コンピュータの アイコン(どれかが でるよ)'],['秒','びょう'],['カードの枚数','カードの まいすう'],['くわしい設定','くわしい せってい'],['対戦相手','たいせんあいて'],['COMと対戦するときは、強さに合わせたBGMが流れます','コンピュータと たいせんする ときは、つよさに あわせた BGMが ながれるよ'],['役の難しさ(作るものの種類の数)','やくの むずかしさ(つくる ものの しゅるいの かず)'],['カードが24枚のときは、1つ下がります','カードが 24まいの ときは、1つ へるよ'],['(あがるには、この役が必要)','(あがるには この やくが ひつよう)'],['(札がなくなって、点数で決定)','(カードが なくなって、てんで きまったよ)'],['役ができました','やくが できたよ'],['カードを見せる時間','カードを みせる じかん']].sort((a,b)=>b[0].length-a[0].length);
 // ひらがなカードゲームでは、元素ゲーム用の言葉を「もじ・ことば」用に言いかえる
 const KANA_H=[['融合できるカードがそろいました','ことばが つくれる カードが そろったよ'],['融合リスト','ことばの ひょう'],['レシピ一覧','ことばの ひょう'],
 ['元素カードゲーム','ひらがなカードゲーム'],['元素カード','もじカード'],['元素','もじ'],['化合物図鑑','ことばずかん'],['化合物点','ことばの てん'],
@@ -297,9 +322,9 @@ const KANA_JK=[['漢字カードゲーム','かんじカードゲーム'],['漢�
 const table=()=>{const m=new Map(),add=a=>a.forEach(([x,y])=>m.set(x,y));
   if(GAME==='kanji'){if(kid()){add(KANA);add(KANA_JK)}else add(KANA_J)}
   else if(GAME==='alpha'){if(kid()){add(KANA);add(KANA_AK)}else add(KANA_A)}
-  else if(kid()){add(KANA);if(GAME==='hira')add(KANA_H)}
+  else if(kid()){add(KANA);if(GAME==='hira'||GAME==='kata')add(KANA_H);if(GAME==='kata')add([['元素カードゲーム','カタカナカードゲーム']])}
   return[...m].sort((a,b)=>b[0].length-a[0].length)};
-const kid=()=>KID||GAME==='hira'||(GAME==='kanji'&&GRADE<=2); // 1・2年生は画面の文字もひらがな
+const kid=()=>KID||GAME==='hira'||GAME==='kata'||(GAME==='kanji'&&GRADE<=2); // 1・2年生は画面の文字もひらがな
 function kana(t){for(const[a,b]of KT)if(t.includes(a))t=t.split(a).join(b);return t}
 const K=t=>(kid()||GAME==='kanji'||GAME==='alpha')?kana(t):t;
 function kanaDom(){
@@ -394,6 +419,7 @@ function newGame(){
   if(GAME==='kanji')buildKanji(); // 漢字・ひらがなは毎ゲームえらびなおす
   if(GAME==='hira')buildHira();
   if(GAME==='alpha')buildAlpha();
+  if(GAME==='kata')buildKata();
   if(GAME==='element')buildElement();
   const d=[];C.elements.forEach(e=>{for(let k=0;k<C.copies;k++)d.push(e[0])});
   for(let i=d.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[d[i],d[j]]=[d[j],d[i]]}
@@ -534,11 +560,13 @@ const HR='もじは ゲームごとに ランダムに えらばれるよ。え�
 const KLH=['ふたりで こうたいに あそぶよ。ふせてあるカードを 2まい めくって、おなじ もじなら ペア!2まい もらえて、つづけて めくれるよ。',HR,KL[1],'ことばは、もっている もじカードの まいすうで つくれるよ(したの ひょう)。たとえば「や」と「ま」で「やま」。つかわなかった カードは とっておけるよ。','やくが できると、「あがり」か「こいこい」を えらべるよ。やくは、ことばが {R}しゅるい いじょう つくれること(むずかしさで かわるよ)。','あがり:そのばで ことばを つくって てんを かぞえて、ゲームおわり。てんが もらえるのは あがったひとだけだよ。',KL[5],'ことばは、いちばん てんが たかくなる くみあわせを じどうで えらぶよ。3もじの ことばは てんが たかいよ。','ことばに しなかった カードは「のこり」になるよ(1まい=のこり1まい)。',KL[8],KL[9],KL[10]];
 const KLK=KLH.map(t=>t===HR?KR:t.replace(/もじカード/g,'かんじカード').replace(/もじ/g,'かんじ').replace(/ことば/g,'じゅくご').replace('「や」と「ま」で「やま」','「大」と「人」で「大人」'));
 const KRA='アルファベットは ゲームごとに ランダムに えらばれるよ。えらばれた もじで、えいごの たんごを つくって、あそびながら おぼえよう!';
+const HRK='もじは ゲームごとに ランダムに えらばれるよ。えらばれた もじで ことばが つくれるから、あそびながら カタカナを おぼえよう!';
+const KLT=KLH.map(t=>t===HR?HRK:t.replace('「や」と「ま」で「やま」','「カ」と「メ」で「カメ」'));
 const KLA=KLH.map(t=>t===HR?KRA:t.replace('3もじの ことばは てんが たかいよ','ながい たんごは てんが たかいよ').replace(/もじカード/g,'アルファベットカード').replace(/もじ/g,'アルファベット').replace(/ことば/g,'たんご').replace('「や」と「ま」で「やま」','「c」と「a」と「t」で「cat」'));
 function rulesHTML(){
   const jk=junkT().sort((a,b)=>a[0]-b[0]);
   const jt=jk.map(([n,p],i)=>`${n}${jk[i+1]?'〜'+(jk[i+1][0]-1)+'枚':'枚以上'}:${p}点`).join('、')+`(${jk[0][0]-1}枚以下:0点)`;
-  const L=GAME==='hira'?KLH:(GAME==='kanji'&&kid())?KLK:(GAME==='alpha'&&kid())?KLA:(GAME==='element'&&KID)?KL:['2人で交代します。裏向きのカードを2枚めくり、同じ元素ならペア成立。2枚を獲得して、続けてめくれます。','違う元素なら、裏に戻して相手の番になります。','化合物は、獲得した元素カードの枚数で決まります(下の融合リスト)。使わなかったカードは持ち越せます。','役ができると、「あがり」か「こいこい」を選べます。役は、熟語(化合物・言葉)が{R}種類以上作れることです(役の難しさで変わります)。','あがり:その場で融合して点数を計算し、ゲーム終了。得点できるのはあがった人だけです。','こいこい:ゲーム再開。同じ人が続けてめくります。','融合は、手持ちのカードで一番高得点になる組み合わせを自動で選びます。','融合に使わず残ったカードは、カス(1枚=1枚)になります。','先攻はあがったときに+'+C.firstBonus+'点。役ができないまま札がなくなったら、点数が多い方の勝ち(同じなら引き分け)です。','ゲーム数は最初に1・3・5から選びます。ゲームに勝つのは得点が多い方(あがった人)で、勝ったゲームが多い方がマッチの勝者です(同数なら累計点)。先攻はゲームごとに交代します。','COMと対戦(1人)では、COMも同じルールで遊びます。COMは、めくられたカードをある程度覚えています。強さは、やさしい・普通・強いから選べます。'];
+  const L=GAME==='hira'?KLH:GAME==='kata'?KLT:(GAME==='kanji'&&kid())?KLK:(GAME==='alpha'&&kid())?KLA:(GAME==='element'&&KID)?KL:['2人で交代します。裏向きのカードを2枚めくり、同じ元素ならペア成立。2枚を獲得して、続けてめくれます。','違う元素なら、裏に戻して相手の番になります。','化合物は、獲得した元素カードの枚数で決まります(下の融合リスト)。使わなかったカードは持ち越せます。','役ができると、「あがり」か「こいこい」を選べます。役は、熟語(化合物・言葉)が{R}種類以上作れることです(役の難しさで変わります)。','あがり:その場で融合して点数を計算し、ゲーム終了。得点できるのはあがった人だけです。','こいこい:ゲーム再開。同じ人が続けてめくります。','融合は、手持ちのカードで一番高得点になる組み合わせを自動で選びます。','融合に使わず残ったカードは、カス(1枚=1枚)になります。','先攻はあがったときに+'+C.firstBonus+'点。役ができないまま札がなくなったら、点数が多い方の勝ち(同じなら引き分け)です。','ゲーム数は最初に1・3・5から選びます。ゲームに勝つのは得点が多い方(あがった人)で、勝ったゲームが多い方がマッチの勝者です(同数なら累計点)。先攻はゲームごとに交代します。','COMと対戦(1人)では、COMも同じルールで遊びます。COMは、めくられたカードをある程度覚えています。強さは、やさしい・普通・強いから選べます。'];
   return`<h3 style="margin-top:0">遊び方</h3>${L.map(t=>t.replace(/\{R\}/g,REQ())).map((t,i)=>`<div class=ht>${i+1}. ${t}</div>`).join('')}
   <h3>融合リスト</h3>${Object.keys(C.compounds).map(k=>`<div class=ht>${rt(C.compounds[k].r)} = <b${NT()}>${dn(k)}</b>(+${C.compounds[k].p}点)</div>`).join('')}
   <h3>役リスト(化合物の組み合わせ)</h3>${[0,1,2,3].map(i=>`<div class=ht><b>${C.noun}${REQ()+i}種類</b>(+${[5,8,11,14][i]}点)${i?'':'(あがるには、この役が必要)'}</div>`).join('')}${C.yaku.map(y=>`<div class=ht><b>${y.n}</b>:${y.distinct?'異なる化合物'+y.distinct+'種類':Object.entries(y.need).map(([k,n])=>n>1?k+'×'+n:k).join(' + ')}(+${y.b}点)</div>`).join('')}
@@ -586,10 +614,28 @@ function fit(){
   const st=document.documentElement.style;
   st.setProperty('--cols',best.c);st.setProperty('--cw',Math.max(24,Math.floor(best.cw))+'px');
 }
+// ===== 最初の画面:よく使うものだけを出し、あとは「くわしい設定」にしまう =====
+const GAMES=[['element','元素'],['hira','ひらがな'],['kanji','かんじ'],['alpha','アルファベット'],['kata','カタカナ']];
+let SETOPEN=false;
+function menuHTML(){
+  const bt=(on,fn,label,cls)=>`<button class="b sm${on?'':' g'}${cls||''}" onclick="${fn}">${label}</button>`;
+  const adv=`<details class=adv ${SETOPEN?'open':''} ontoggle="SETOPEN=this.open"><summary>くわしい設定</summary>
+    <p>${MODE==='com'?'あなた':'プレイヤー1'}のアイコン</p>${iconBtns(0)}${MODE==='pvp'?`<p>プレイヤー2のアイコン</p>${iconBtns(1)}`:''}
+    ${MODE==='com'?`<p class=ht>COMのアイコン(どれかが出ます):${CICONS[LEVEL].map(x=>`<span class=ic>${x[1]}</span>`).join('')}</p>`:''}
+    <p>役の難しさ(作るものの種類の数)</p>${LVS.map((x,i)=>bt(LV===i,`setLv(${i})`,`${x[0]}(${x[1]}種類)`)).join('')}<p class=ht>カードが24枚のときは、1つ下がります</p>
+    <p>カードの枚数</p>${DECKS.map(x=>bt(DECK===x[1],`setDeck(${x[1]})`,x[0])).join('')}
+    <p>カードを見せる時間</p>${SHOWS.map((x,i)=>bt(SHOW===i,`setShow(${i})`,`${x[0]}(${x[1]/1000}秒)`)).join('')}</details>`;
+  return `${nav()}<div class=mn><h2>${C.title}</h2><p>ゲームを選んでください</p>
+    <div>${GAMES.map(([g,l])=>bt(GAME===g,`setGame('${g}')`,l,' nt')).join('')}</div>
+    ${GAME==='kanji'?`<p>学年を選んでください</p><div>${[1,2,3,4,5,6].map(i=>bt(GRADE===i,`setGrade(${i})`,`${i}年生`)).join('')}</div>`:''}
+    <p>対戦相手</p><div>${bt(MODE==='com',"setMode('com')",'COMと対戦(1人)')}${bt(MODE==='pvp',"setMode('pvp')",'2人で対戦')}</div>
+    ${MODE==='com'?`<p>COMの強さ</p><div>${Object.keys(C.comLevels).map(l=>bt(LEVEL===l,`setLevel('${l}')`,l)).join('')}</div>`:''}
+    ${adv}<p>何ゲーム勝負にしますか?</p><div>${[1,3,5].map(n=>`<button class=b onclick="start(${n})">${n}ゲーム勝負</button>`).join('')}</div></div>${V?modal():INTRO?introHTML():''}`;
+}
 function render(){
   $('app').className=M?'game':'';
   if(document.body&&document.body.classList)document.body.classList.toggle('gm',!!M);
-  if(!M){$('app').innerHTML=`${nav()}<div style="text-align:center;margin:40px 0"><h2>${C.title}</h2><p>ゲームを選んでください</p><button class="b${GAME==='element'?'':' g'}" onclick="setGame('element')">${GAME==='element'?'元素カードゲーム':'げんそカードゲーム'}</button><button class="b${GAME==='hira'?'':' g'}" onclick="setGame('hira')">ひらがなカードゲーム</button><button class="b${GAME==='kanji'?'':' g'}" onclick="setGame('kanji')">かんじカードゲーム</button><button class="b${GAME==='alpha'?'':' g'}" onclick="setGame('alpha')">アルファベットカードゲーム</button>${GAME==='kanji'?`<p>学年を選んでください</p>${[1,2,3,4,5,6].map(i=>`<button class="b${GRADE===i?'':' g'}" onclick="setGrade(${i})">${i}年生</button>`).join('')}<p class=ht>下の学年でならう漢字も入ります。漢字は毎回ランダムです。</p>`:''}<p>対戦相手を選んでください</p><button class="b${MODE==='com'?'':' g'}" onclick="setMode('com')">COMと対戦(1人)</button><button class="b${MODE==='pvp'?'':' g'}" onclick="setMode('pvp')">2人で対戦</button>${MODE==='com'?`<p>COMの強さ</p>${Object.keys(C.comLevels).map(l=>`<button class="b${LEVEL===l?'':' g'}" onclick="setLevel('${l}')">${l}</button>`).join('')}`:''}<p>${MODE==='com'?'あなた':'プレイヤー1'}のアイコン</p>${iconBtns(0)}${MODE==='pvp'?`<p>プレイヤー2のアイコン</p>${iconBtns(1)}`:''}<p>役の難しさ(作るものの種類の数)</p>${LVS.map((x,i)=>`<button class="b${LV===i?'':' g'}" onclick="setLv(${i})">${x[0]}(${x[1]}種類)</button>`).join('')}<p class=ht>カードが24枚のときは、1つ下がります</p><p>カードの枚数</p>${DECKS.map(x=>`<button class="b${DECK===x[1]?'':' g'}" onclick="setDeck(${x[1]})">${x[0]}</button>`).join('')}<p>カードを見せる時間</p>${SHOWS.map((x,i)=>`<button class="b${SHOW===i?'':' g'}" onclick="setShow(${i})">${x[0]}(${x[1]/1000}秒)</button>`).join('')}${MODE==='com'?`<p class=ht>COMのアイコン(どれかが出ます):${CICONS[LEVEL].map(x=>`<span class=ic>${x[1]}</span>`).join('')}</p>`:''}${MODE==='com'?'<p class=ht>COMと対戦するときは、強さに合わせたBGMが流れます</p>':''}<p>何ゲーム勝負にしますか?</p>${[1,3,5].map(n=>`<button class=b onclick="start(${n})">${n}ゲーム勝負</button>`).join('')}<p class=ht>各ゲームは、得点が多い方(あがった人)の勝ち。勝ったゲームが多い方がマッチの勝者です。</p></div>${V?modal():INTRO?introHTML():''}`;kanaDom();return}
+  if(!M){$('app').innerHTML=menuHTML();kanaDom();return}
   const cols=Math.max(4,Math.min(13,Math.floor((innerWidth-16)/52)));
   const cw=(Math.min(innerWidth,1100)-16-4*(cols-1))/cols;
   document.documentElement.style.setProperty('--cols',cols);
