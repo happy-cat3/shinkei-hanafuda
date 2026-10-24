@@ -4284,6 +4284,33 @@ function tmSync(){const T=W.town,st=townStage(),stu=ORDER.filter(a=>RK(a)>0),na=
   if(!tmFree(TM.lx,TM.ly)){TM.lx=TM.fx=12;TM.ly=TM.fy=10}
   const u=LUNA_SP[lunaStage()];if(TM.imgs.Lu!==u){const i=new Image();i.src=u;TM.imgs.L=i;TM.imgs.Lu=u}
   stu.forEach(a=>{const k=STU[a].i;if(!TM.imgs[k]){const i=new Image();i.src=STU_IMG[k];TM.imgs[k]=i}})}
+function tmAnimal(x,sp,face,bob){x.save();if(face<0)x.scale(-1,1);x.translate(0,-bob);x.lineWidth=1;x.strokeStyle='#3a2a1a';
+  const E=(a,b,rx,ry,c)=>{x.fillStyle=c;x.beginPath();x.ellipse(a,b,rx,ry,0,0,7);x.fill();x.stroke()},Tri=(a,b,c,d,e,f,col)=>{x.fillStyle=col;x.beginPath();x.moveTo(a,b);x.lineTo(c,d);x.lineTo(e,f);x.closePath();x.fill();x.stroke()};
+  const C={'ねこ':['#e89a3c','#fff2d8'],'いぬ':['#b9803c','#f3dcae'],'うさぎ':['#f4f0ea','#ffd0d8'],'ことり':['#ffd84a','#fff2a8'],'ひつじ':['#f6f6f2','#4a3a32'],'りす':['#b8682c','#f3dcae'],'きつね':['#e0742c','#fff6e8'],'くま':['#8a5a32','#d8b484'],'ぶた':['#f4a8b8','#ffd0d8']}[sp],[b,l]=C;
+  if(sp==='ことり'){E(0,-8,7,6,b);E(-3,-8,3,2.5,'#f0b020');Tri(6,-9,10,-8,6,-7,'#ff8a3a');E(3,-12,0,0,b);x.fillStyle='#222';x.fillRect(4,-11,1.5,1.5);x.fillStyle='#ff8a3a';x.fillRect(-2,-2,1.5,3);x.fillRect(2,-2,1.5,3);x.restore();return}
+  x.fillStyle='#3a2a1a';
+  if(sp==='ねこ'||sp==='きつね'){x.strokeStyle='#3a2a1a';x.fillStyle=sp==='きつね'?'#fff6e8':b;x.beginPath();x.ellipse(-10,-9,6,3,-.6,0,7);x.fill();x.stroke()}
+  if(sp==='りす'){E(-9,-12,5,7,b)}
+  if(sp==='ぶた'){x.beginPath();x.arc(-9,-10,3,0,5);x.stroke()}
+  if(sp==='いぬ'){x.beginPath();x.moveTo(-8,-9);x.quadraticCurveTo(-12,-14,-10,-15);x.stroke()}
+  if(sp==='うさぎ'){E(-9,-8,2.5,2.5,'#fff')}
+  if(sp==='くま'){E(-8,-8,2.5,2.5,b)}
+  x.fillStyle=b;x.fillRect(-5,-4,3,4);x.fillRect(2,-4,3,4);x.strokeRect(-5,-4,3,4);x.strokeRect(2,-4,3,4);
+  if(sp==='ひつじ'){for(const[a,c]of[[-5,-9],[0,-11],[5,-9],[-3,-6],[3,-6]])E(a,c,4.5,4,'#fbfbf8');}else E(0,-8,8,6,b);
+  E(0,-5,4,2.5,l==='#4a3a32'?'#fbfbf8':l);
+  const hx=6,hy=-14;
+  if(sp==='ねこ'||sp==='きつね'){Tri(hx-5,hy-3,hx-4,hy-10,hx-1,hy-5,b);Tri(hx+1,hy-5,hx+4,hy-10,hx+5,hy-2,b)}
+  if(sp==='うさぎ'){E(hx-2,hy-10,1.8,5.5,b);E(hx+2,hy-10,1.8,5.5,b)}
+  if(sp==='くま'){E(hx-4,hy-4,2.2,2.2,b);E(hx+4,hy-4,2.2,2.2,b)}
+  if(sp==='ぶた'){Tri(hx-4,hy-4,hx-1,hy-8,hx,hy-4,b);Tri(hx+1,hy-4,hx+4,hy-8,hx+5,hy-3,b)}
+  if(sp==='りす'){Tri(hx-4,hy-3,hx-3,hy-8,hx-1,hy-4,b);Tri(hx+1,hy-4,hx+3,hy-8,hx+4,hy-3,b)}
+  if(sp==='ひつじ'){E(hx,hy,5.5,5,l)}else E(hx,hy,6,5.5,b);
+  if(sp==='いぬ'){E(hx-6,hy-1,2.5,5,'#6a4020')}
+  if(sp==='ひつじ')E(hx-3,hy-5,3,2.5,'#fbfbf8');
+  if(sp==='きつね'||sp==='ねこ'||sp==='いぬ'||sp==='くま'||sp==='ぶた'||sp==='うさぎ'||sp==='りす'){E(hx+3,hy+1.5,3,2.2,sp==='ぶた'?'#ff90a8':l)}
+  x.fillStyle='#222';x.fillRect(hx+1,hy-2,1.6,2);x.fillRect(hx+4.5,hy-2,1.6,2);
+  x.fillStyle='#3a2a1a';x.fillRect(hx+4,hy+.5,2,1.2);
+  x.restore()}
 function tmNpcAt(x,y){return TM.npcs.find(n=>n.x===x&&n.y===y)}
 function tmPanel(){const e=document.getElementById('tpanel');if(e)e.innerHTML=tmPanelHTML()}
 function tmPanelHTML(){const i=TM.sel;if(i==null||!W.town.fp[i]||typeof plotHTML!=='function')return'<div class=ht style="text-align:center">🥕 食べ物の はたけは 東(みぎ)の みち。はたけの 土の上に のると、そだてられるよ!</div>';return`<div class=ht style="color:#FFEB3B">はたけ ${i+1}ばん</div>`+plotHTML(i)}
@@ -4337,7 +4364,7 @@ function tmDraw(){const c=document.getElementById('tmap');if(!c)return;const x=c
     const X=(q.x+.5)*T-ox,by=(q.y+1)*T-2-oy,bob=q.mv?Math.abs(Math.sin(now/90))*2:0;
     x.fillStyle='rgba(0,0,0,.25)';x.beginPath();x.ellipse(X,by,8,3,0,0,7);x.fill();
     if(n.t==='s'){const im=TM.imgs[STU[n.a].i],on=stuOn(n.a);if(im&&im.complete&&im.naturalWidth){const h=30,w=im.naturalWidth/im.naturalHeight*h;x.save();if(!on)x.filter='brightness(.45)';x.translate(X,by-bob);if(n.face<0)x.scale(-1,1);x.drawImage(im,-w/2,-h,w,h);x.restore();if(!on){x.font='11px sans-serif';x.fillText('💤',X-6,by-32)}}}
-    else{x.font='17px sans-serif';x.textAlign='center';x.fillText(n.e,X,by-3-bob);x.textAlign='start'}
+    else{x.save();x.translate(X,by-1);tmAnimal(x,n.sp,n.face,bob);x.restore()}
     if(TM.bub&&TM.bub.id===n.id&&TM.bub.until>now){x.font='13px sans-serif';x.fillText('💬',X-7,by-(n.t==='s'?34:22))}}})});
   const q=pos(0,1),LX=(q.x+.5)*T-ox,LB=(q.y+1)*T-2-oy,LH=34;
   const lunaDraw=al=>{const im=TM.imgs.L;if(!(im&&im.complete&&im.naturalWidth))return;const w=im.naturalWidth/im.naturalHeight*LH,bob=q.mv?Math.abs(Math.sin(now/70))*2.5:0,nat=lunaStage()===2?-1:1;
