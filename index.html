@@ -314,7 +314,12 @@ function harvestPlot(i){const p=W.farm.plots[i];if(p.mon||!p.plant||p.stage<WC.s
 const ELEMQ=[['H','水素'],['He','ヘリウム'],['Li','リチウム'],['C','炭素'],['N','窒素'],['O','酸素'],['F','フッ素'],['Ne','ネオン'],['Na','ナトリウム'],['Mg','マグネシウム'],['Al','アルミニウム'],['Si','ケイ素'],['P','リン'],['S','硫黄'],['Cl','塩素'],['K','カリウム'],['Ca','カルシウム'],['Fe','鉄'],['Cu','銅'],['Zn','亜鉛'],['Ag','銀'],['Au','金']];
 const rnd=a=>a[Math.random()*a.length|0];
 function newQ(){
-  const t=rnd(['elem','alpha','kata','h2k','k2h','u2l']);let text,ans,pool;
+  // 【仮】英語・アルファベットの問題は、4年生が ひらいてから(1〜3年生は まだ 英語を ならわないので、漢字・ひらがな・カタカナだけ)
+  const t=rnd(['h2k','k2h','kr','kr','kr2',...(realOpen(4)?['elem','alpha','kata','u2l']:[])]);let text,ans,pool;
+  if(t==='kr'||t==='kr2'){const gm=Math.max(1,openMax()),cs=Object.keys(KRM).filter(c=>KG[c]<=gm&&(KRM[c].on.length||KRM[c].kun.length)),c=rnd(cs),kinds=['on','kun'].filter(k=>KRM[c][k].length),kd=rnd(kinds);
+    if(t==='kr'){text=`「${c}」の ${kd==='on'?'おんよみ':'くんよみ'}は?`;ans=rnd(KRM[c][kd]);pool=[];cs.forEach(x=>KRM[x][kd].forEach(r=>pool.push(r)));pool=pool.filter(r=>!KRM[c][kd].includes(r))}
+    else{const rd=rnd(KRM[c][kd]);text=`「${rd}」と よむ 漢字は?`;ans=c;pool=cs.filter(x=>x!==c&&!KRM[x].on.includes(rd)&&!KRM[x].kun.includes(rd))}
+    const others=[...new Set(pool)].filter(x=>x!==ans).sort(()=>Math.random()-.5).slice(0,3);const ch=[ans,...others].sort(()=>Math.random()-.5);return{text,ch,ans:ch.indexOf(ans)}}
   if(t==='elem'){const[sy,n]=rnd(ELEMQ);text=`げんそきごう「${sy}」の なまえは?`;ans=n;pool=ELEMQ.map(x=>x[1])}
   else if(t==='alpha'){const w=rnd(ALLA).k;text=`えいごの「${w}」の いみは?`;ans=MEAN[w];pool=ALLA.map(x=>MEAN[x.k])}
   else if(t==='kata'){const L=ALLK.filter(x=>/^[a-z-]+$/.test(MEANK[x.k])),w=rnd(L).k;text=`カタカナの「${w}」は えいごで なんと いう?`;ans=MEANK[w];pool=L.map(x=>MEANK[x.k])}
