@@ -252,6 +252,7 @@ const SPIRITS={火:['フレイオン','じょうねつと ゆうきの せいれ
  土:['ガイアス','あんていと しんらいの せいれい。だいちの ちからで きばんを ささえる!'],光:['ルミナス','きぼうと みちびきの せいれい。ひかりの ちからで みらいを てらす!'],
  闇:['ノクターン','しんぴと どうさつの せいれい。やみの ちからで しんじつを みぬく!'],雷:['ボルトン','スピードと ひらめきの せいれい。かみなりの ちからで きせきを おこす!']};
 const PLANT={火:'ほのおばな',水:'すいしょうのみ',木:'わかぎ',風:'かざぐるまそう',土:'つちいも',光:'ひかりのき',闇:'つきよばな',雷:'いかずちキノコ'};
+const EGG_MAX=3;
 const WC={plantCost:2,feed:2,stages:3,eggChance:.35,pity:3,muralN:5}; // 【仮】植える・育てるのエネルギー、成長の段階、卵が見つかる確率、必ず見つかるまでの収穫回数、壁画の問題数
 // 属性に関係する言葉(仮):この言葉を作ると、その属性の元素エネルギーがたまる(言葉の点数と同じだけ)
 const AW_SRC={
@@ -274,7 +275,7 @@ function attrOf(k){
 let W=null;
 function loadW(){try{W=JSON.parse(localStorage.getItem('elemWorld')||'null')}catch(e){W=null}
   if(!W||W.v!==1)W={v:1,energy:{},crops:{},eggs:[],spirits:{},farm:{plots:[{},{},{}],harvests:0,noEgg:0}};
-  ATTRS.forEach(a=>{W.energy[a]=W.energy[a]||0});W.tree=W.tree||0;W.lp=W.lp||0;W.monsters=W.monsters||{};W.lastTraps=W.lastTraps||[];syncPlots()}
+  ATTRS.forEach(a=>{W.energy[a]=W.energy[a]||0});W.tree=W.tree||0;W.lp=W.lp||0;W.monsters=W.monsters||{};W.lastTraps=W.lastTraps||[];W.town=W.town||{stage:0,day:'',stock:0,hungry:false,dis:null,fp:[{},{}],ndis:0};syncPlots()}
 const saveW=()=>{try{localStorage.setItem('elemWorld',JSON.stringify(W))}catch(e){}};
 // ===== 親子ポイント・世界樹・精霊のちから(設計書:学習進行・世界樹経験値・理解度管理仕様)。数字はすべて【仮】 =====
 // 世界樹経験値=新しく覚えたときだけ(復習・にがて克服・まちがいでは増えない)/ 親子ポイント=新規・復習・にがて克服で増える(同じ字のくりかえしは少なく)
@@ -299,13 +300,15 @@ function giveReward(){
 const rewardHTML=()=>{const g=G.reward||{},l=ATTRS.filter(a=>g[a]);
   return `<div class=ht><span class=nt>${kid()?'げんそエネルギー':'元素エネルギー'}</span>:${l.length?l.map(a=>`<b style="color:${ACOL[a]}">${a}+${g[a]}</b>`).join(' '):'なし(ぞくせいの ことばが なかったよ)'}</div>${Object.keys(G.bonus||{}).length?`<div class=ht>せいれいの おかげ:${ATTRS.filter(a=>G.bonus[a]).map(a=>`<b style="color:${ACOL[a]}">${a}+${G.bonus[a]}</b>`).join(' ')}</div>`:''}`};
 // ---- 農園 ----
-let FT='farm',FM='',MS=null,HATCH=null;
-const openWorld=t=>{V='farm';FT=t;render()},setFT=t=>{if(!tabOpen(t))return;FT=t;HATCH=null;render()};
+let FT='farm',FM='',MS=null,HATCH=null,HSPR=1,CM='',TWM='';
+const openWorld=t=>{V='farm';FT=t;render()},setFT=t=>{if(!tabOpen(t))return;FT=t;HATCH=null;CM='';TWM='';if(t==='town')townTick();render()};
 function plantSeed(i,a){const e=W.energy,p=W.farm.plots[i];if(!attrOpen(a)||p.plant||e[a]<WC.plantCost)return;e[a]-=WC.plantCost;W.farm.plots[i]={plant:a,stage:0};FM=`${PLANT[a]}の たねを うえたよ!`;saveW();render()}
 function feedPlot(i){const p=W.farm.plots[i];if(p.mon||!p.plant||p.stage>=WC.stages||W.energy[p.plant]<WC.feed)return;W.energy[p.plant]-=WC.feed;p.stage++;FM=p.stage>=WC.stages?`${PLANT[p.plant]}が さいたよ! しゅうかくしよう`:`${PLANT[p.plant]}が すこし そだったよ`;raidCheck(p);saveW();render()}
 function harvestPlot(i){const p=W.farm.plots[i];if(p.mon||!p.plant||p.stage<WC.stages)return;const a=p.plant;W.crops[a]=(W.crops[a]||0)+1;W.farm.harvests++;
-  if(Math.random()<WC.eggChance+treeBonus()||W.farm.noEgg>=WC.pity-1){W.eggs.push({a});W.farm.noEgg=0;FM=`${PLANT[a]}を しゅうかく! なんと ${a}ぞくせいの たまごを みつけたよ!`}
-  else{W.farm.noEgg++;FM=`${PLANT[a]}を しゅうかくしたよ`}
+  const eggOK=tabOpen('cave')&&W.eggs.length<EGG_MAX; // 【仮】洞窟の壁画が ひらいてから たまごが みつかる。もてるのは3こまで
+  const ea=eggOK?pickEggAttr(a):null; // 卵の属性は、つぎの試練で めざめる精霊の属性(その植物の属性がまだなら、それを優先)
+  if(ea&&(Math.random()<WC.eggChance+treeBonus()||W.farm.noEgg>=WC.pity-1)){W.eggs.push({a:ea,r:trialTargets().find(t=>t.a===ea).r});W.farm.noEgg=0;FM=`${PLANT[a]}を しゅうかく! なんと ${ea}ぞくせいの たまごを みつけたよ!`}
+  else{if(ea)W.farm.noEgg++;FM=`${PLANT[a]}を しゅうかくしたよ`+(!tabOpen('cave')?'':W.eggs.length>=EGG_MAX?'(たまごが いっぱいだよ。洞窟で かえしてね)':'')}
   W.farm.plots[i]={};saveW();render()}
 // ---- 洞窟の壁画(問題)。試作では、いまのカードゲームのデータから問題を作る。本番は、ことばの冒険の学習項目につなぐ ----
 const ELEMQ=[['H','水素'],['He','ヘリウム'],['Li','リチウム'],['C','炭素'],['N','窒素'],['O','酸素'],['F','フッ素'],['Ne','ネオン'],['Na','ナトリウム'],['Mg','マグネシウム'],['Al','アルミニウム'],['Si','ケイ素'],['P','リン'],['S','硫黄'],['Cl','塩素'],['K','カリウム'],['Ca','カルシウム'],['Fe','鉄'],['Cu','銅'],['Zn','亜鉛'],['Ag','銀'],['Au','金']];
@@ -321,11 +324,13 @@ function newQ(){
   const others=[...new Set(pool)].filter(x=>x!==ans).sort(()=>Math.random()-.5).slice(0,3);
   const ch=[ans,...others].sort(()=>Math.random()-.5);return{text,ch,ans:ch.indexOf(ans)};
 }
-function startMural(i){MS={egg:i,prog:0,q:newQ(),msg:''};HATCH=null;render()}
+function startMural(i){CM='';const e=W.eggs[i],t=trialTargets().find(x=>x.a===e.a);
+  if(!t){CM=trialTargets().length?`${e.a}の たまごは いまは かえせないよ。先に ${trialTargets().map(x=>x.a).join('・')}の 試練を すすめよう`:`いまの 学年では、これいじょう 精霊は 強くならないよ。学年が すすむと 次の 試練が ひらくよ`;return render()}
+  e.r=t.r;MS={egg:i,prog:0,n:MURAL_N[t.r-1],r:t.r,q:newQ(),msg:''};HATCH=null;HSPR=t.r;render()}
 function answerMural(k){
   if(!MS)return;
   if(k===MS.q.ans){MS.prog++;
-    if(MS.prog>=WC.muralN){const a=W.eggs[MS.egg].a;W.eggs.splice(MS.egg,1);W.spirits[a]=(W.spirits[a]||0)+1;HATCH=a;MS=null;saveW();render();return}
+    if(MS.prog>=MS.n){const a=W.eggs[MS.egg].a;W.eggs.splice(MS.egg,1);W.spirits[a]=MS.r;HATCH=a;HSPR=MS.r;MS=null;townTick(true);saveW();render();return}
     MS.msg='せいかい! ふしぎな ひかりが つよくなったよ';
   }else MS.msg='おしい! もういちど ちょうせんしよう';
   MS.q=newQ();render()}
@@ -340,7 +345,7 @@ const eggSVG=a=>`<svg viewBox="0 0 40 50" style="width:26px;height:32px;vertical
 function treeHTML(){return statusBar()}
 function worldModal(){
   const chip=a=>`<span class=ch style="--c:${ACOL[a]}">${a}<small>${W.energy[a]}</small></span>`;
-  const tabs=[['farm','農園'],['trap','わな'+(W.farm.plots.some(p=>p.mon)?'●':'')],['cave','洞窟の壁画'],['spirit','精霊図鑑'],['mons','まものずかん']].map(([t,l])=>tabOpen(t)?`<button class="b sm${FT===t?'':' g'}" onclick="setFT('${t}')">${l}</button>`:`<button class="b sm g" disabled>🔒${l} Lv${TABU[t]}</button>`).join('');
+  const tabs=[['farm','農園'],['trap','わな'+(W.farm.plots.some(p=>p.mon)?'●':'')],['cave','洞窟の壁画'],['spirit','精霊図鑑'],['town','町'+(W.town.dis?'●':'')],['mons','まものずかん']].map(([t,l])=>tabOpen(t)?`<button class="b sm${FT===t?'':' g'}" onclick="setFT('${t}')">${l}</button>`:`<button class="b sm g" disabled>🔒${l} ${t==='town'?'(せいれいが うまれたら)':'Lv'+TABU[t]}</button>`).join('');
   let body='';
   if(FT==='farm'){
     body=`<div class=ht style="color:#FFEB3B">${FM||'カードゲームや フラッシュで ためた エネルギーで、しょくぶつを そだてよう!(世界樹が そだつと はたけが ふえるよ)'}</div>${nextUnlock()}`+W.farm.plots.map((p,i)=>{
@@ -351,14 +356,15 @@ function worldModal(){
       return `<div class=pt>${plantSVG(a,p.stage)}<div><div class=ht><b style="color:${ACOL[a]}">${PLANT[a]}</b>(${a}) ${p.stage}/${WC.stages}</div><div>${ready?`<button class=b onclick="harvestPlot(${i})">しゅうかく</button>`:`<button class="b sm${can?'':' g'}" ${can?'':'disabled'} onclick="feedPlot(${i})">エネルギーを あげる(${a}-${WC.feed})</button>`}</div></div></div>`}).join('')
       +`<div class=ht>たまご:${W.eggs.length?W.eggs.map(e=>eggSVG(e.a)).join(''):'まだ ないよ'}</div>`;
   }else if(FT==='cave'){
-    if(HATCH){const a=HATCH;body=`<div style="text-align:center"><div style="color:#FFEB3B;font-size:16px">たまごが かえったよ!</div><img class=spi src="${SPIRIT_IMG[a]}" alt=""><div><b style="color:${ACOL[a]}">${SPIRITS[a][0]}</b>(${a}ぞくせい)</div><div class=ht>${SPIRITS[a][1]}</div><button class="b sm" onclick="HATCH=null;render()">もどる</button></div>`}
-    else if(MS){const a=W.eggs[MS.egg].a,br=.15+MS.prog/WC.muralN*.85,bl=(WC.muralN-MS.prog)*1.6;
-      body=`<div style="text-align:center"><img class=spi src="${SPIRIT_IMG[a]}" alt="" style="filter:brightness(${br.toFixed(2)}) blur(${bl.toFixed(1)}px)"><div class=ht>${'●'.repeat(MS.prog)}${'○'.repeat(WC.muralN-MS.prog)}</div><div class=ht style="font-size:15px">${MS.q.text}</div><div>${MS.q.ch.map((c,k)=>`<button class=b onclick="answerMural(${k})">${c}</button>`).join('')}</div><div class=ht style="color:#FFEB3B">${MS.msg}</div></div>`}
-    else body=W.eggs.length?`<div class=ht>たまごを えらんで、かべの もんだいに こたえよう!(${WC.muralN}もん せいかいで かくせい)</div>`+W.eggs.map((e,i)=>`<button class="b g sm" onclick="startMural(${i})">${eggSVG(e.a)}${e.a}ぞくせいの たまご</button>`).join(''):`<div class=ht>たまごが ありません。農園で しょくぶつを そだてて、たまごを みつけよう!</div>`;
-  }else if(FT==='trap'){body=trapHTML()}else if(FT==='mons'){body=monsHTML()}else{
+    if(HATCH){const a=HATCH;body=`<div style="text-align:center"><div style="color:#FFEB3B;font-size:16px">たまごが かえったよ!</div><img class=spi src="${SPIRIT_IMG[a]}" alt=""><div><b style="color:${ACOL[a]}">${SPIRITS[a][0]}</b>(${a}ぞくせい・${SR[HSPR]})</div><div class=ht>${SPIRITS[a][1]}</div><button class="b sm" onclick="HATCH=null;render()">もどる</button></div>`}
+    else if(MS){const a=W.eggs[MS.egg].a,br=.15+MS.prog/MS.n*.85,bl=(MS.n-MS.prog)*1.6;
+      body=`<div class=ht style="text-align:center">${a}の ${SR[MS.r]}の 試練</div><div style="text-align:center"><img class=spi src="${SPIRIT_IMG[a]}" alt="" style="filter:brightness(${br.toFixed(2)}) blur(${bl.toFixed(1)}px)"><div class=ht>${'●'.repeat(MS.prog)}${'○'.repeat(MS.n-MS.prog)}</div><div class=ht style="font-size:15px">${MS.q.text}</div><div>${MS.q.ch.map((c,k)=>`<button class=b onclick="answerMural(${k})">${c}</button>`).join('')}</div><div class=ht style="color:#FFEB3B">${MS.msg}</div></div>`}
+    else body=trialInfo()+(W.eggs.length?`<div class=ht>たまごを えらんで、かべの もんだいに こたえよう!(ランクが 上がるほど もんだいが ふえるよ)</div>`+W.eggs.map((e,i)=>{const t=trialTargets().find(x=>x.a===e.a);return`<button class="b g sm" onclick="startMural(${i})">${eggSVG(e.a)}${e.a}の ${SR[(t?t.r:e.r)||1]}${t?'':'(まだ かえせない)'}</button>`}).join(''):'')+(W.eggs.length?'':'<div class=ht>たまごが ありません。農園で しょくぶつを そだてて、たまごを みつけよう!</div>');
+  }else if(FT==='town'){body=townHTML()}else if(FT==='trap'){body=trapHTML()}else if(FT==='mons'){body=monsHTML()}else{
     const n=ATTRS.filter(a=>W.spirits[a]).length;
-    body=`<div class=sp>${ATTRS.map(a=>{const c=W.spirits[a]||0;return `<div class=sc><img src="${SPIRIT_IMG[a]}" alt="" ${c?'':'style="filter:brightness(0)"'}><div style="color:${ACOL[a]}">${a}</div><div>${c?SPIRITS[a][0]+(c>1?' ×'+c:''):'???'}</div></div>`}).join('')}</div><div class=ht>${n}/8</div><div class=ht>せいれいの ちから:${ATTRS.filter(a=>W.spirits[a]).map(a=>`<b style="color:${ACOL[a]}">${a}のエネルギー +${Math.min(3,W.spirits[a])}</b>`).join(' ')||'せいれいが かえると、その ぞくせいの エネルギーが ふえやすくなるよ'}</div>`;
+    body=`<div class=sp>${ATTRS.map(a=>{const c=W.spirits[a]||0;return `<div class=sc><img src="${SPIRIT_IMG[a]}" alt="" ${c?'':'style="filter:brightness(0)"'}><div style="color:${ACOL[a]}">${a}</div><div>${c?SPIRITS[a][0]+'<br><small>'+SR[c]+'</small>':'???'}</div></div>`}).join('')}</div><div class=ht>${n}/8 めざめた ・ ランクの ごうけい ${spiritTotal()}/24</div><div class=ht>せいれいの ちから:${ATTRS.filter(a=>W.spirits[a]).map(a=>`<b style="color:${ACOL[a]}">${a}のエネルギー +${Math.min(3,W.spirits[a])}</b>`).join(' ')||'せいれいが かえると、その ぞくせいの エネルギーが ふえやすくなるよ'}</div>`;
   }
+  if(FT==='cave'&&CM)body=`<div class=ht style="color:#FF8A65">${CM}</div>`+body;
   return `<div class=ov><div class=md style="max-width:520px"><h3 style="margin-top:0">ルナの 農園(試作)</h3>${treeHTML()}<div class=ht><span class=nt>${kid()?'げんそエネルギー':'元素エネルギー'}</span></div><div>${ATTRS.map(chip).join('')}</div><div class=wt>${tabs}</div>${body}<div style="text-align:center;margin-top:8px"><button class=b onclick="view(null)">閉じる</button></div></div></div>`;
 }
 const setGrade=g=>{if(!gradeOpen(g))return;GRADE=g;KT=table();loadZ();buildKanji();render()};
@@ -497,7 +503,7 @@ const KANJIFY=[
 ['つぎは もっと とれるよ。れんしゅうしよう','次はもっと取れるよ。練習しよう'],['にがてに ついか:','苦手に追加:'],['「にがてチャレンジ」で れんしゅうできるよ','「苦手チャレンジ」で練習できるよ'],['あたらしく おぼえた','新しく覚えた'],['まちがえた もの','まちがえたもの'],['もういちど','もう一度'],['ざんねん…','残念…'],['つぎへ','次へ'],['の かんじが ひらいたよ!','の漢字が開いたよ!'],['ルナ先生が 成長したよ!','ルナ先生が成長したよ!'],['おわり!','終わり!'],['けいけんち','経験値'],['ぜんぶで','全部で'],['せいかい','正解'],['れんしゅう','練習'],['にがて','苦手'],['おん:','音:'],['くん:','訓:'],
 ['世界樹が すこし げんきに なってきたよ!','世界樹が少し元気になってきたよ!'],['エネルギーを あげる','エネルギーをあげる'],['しょくぶつ','植物'],['まものと わな','魔物とわな'],['まものずかん','魔物図鑑'],
 ['カードゲームや フラッシュで ためた エネルギーで、しょくぶつを そだてよう!(世界樹が そだつと はたけが ふえるよ)','カードゲームやフラッシュでためたエネルギーで、植物を育てよう!(世界樹が育つと畑が増えるよ)'],
-['つぎの かいほう:','次の開放:'],['(たまごを かえす)','(卵をかえす)'],['(あたらしく おぼえると 世界樹が そだつよ)','(新しく覚えると世界樹が育つよ)'],
+['つぎの かいほう:','次の開放:'],['(たまごが みつかる・かえす)','(卵が見つかる・かえす)'],['(あたらしく おぼえると 世界樹が そだつよ)','(新しく覚えると世界樹が育つよ)'],
 ['たねを うえる(エネルギー','種を植える(エネルギー'],['たまご:まだ ないよ','卵:まだないよ']];
 const RXJ=[[/(\d+) もん/g,'$1問'],[/(\d)こ\(/g,'$1個('],[/はたけ(\d)(?![:\d])/g,'畑$1'],[/お子さまが ごほうび/g,'お子さまがごほうび'],[/きょうは あと (\d+)かい 交換できるよ/g,'今日はあと$1回交換できるよ'],[/きょう あと(\d+)かい/g,'今日あと$1回'],[/はたけ(\d+):あいているよ/g,'畑$1:空いているよ'],
 [/(\d+)もん/g,'$1問'],[/おぼえた (\d+)こ/g,'覚えた$1個'],[/できたスタンプ (\d+)こ/g,'できたスタンプ$1個'],
@@ -3367,6 +3373,76 @@ function trapHTML(){
 function monsHTML(){const n=ATTRS.filter(a=>W.monsters[a]).length;
   return`<div class=sp>${ATTRS.map(a=>{const c=W.monsters[a]||0;return`<div class=sc>${c?monSVG(a,64):`<div style="filter:brightness(0)">${monSVG(a,64)}</div>`}<div style="color:${ACOL[a]}">${a}</div><div>${c?MON[a]+(c>1?' ×'+c:''):'???'}</div></div>`}).join('')}</div><div class=ht>${n}/8 つかまえたよ</div>`}
 
+
+// ===== 町づくり・精霊の数の上限・住人の食べ物・精霊の均衡と災害(設計書:第13冊「町→街」「自然都市・文明都市」、第8冊「世界の均衡システム」)。数字・ルールはすべて【仮】 =====
+// 精霊が うまれると 町ができる。町の大きさで 住める精霊の数(上限)がふえる。住人は まいにち 食べ物を たべる(たりない日は 町の成長が とまるだけ)。
+// 精霊の数に かたよりが あると 災害が おきる(設計書に「災害」の言葉は見つからなかったので、「世界の均衡」の考えから【仮】で作った)。
+const TOWN=[{n:'集落',sp:1,lv:1,res:2},{n:'村',sp:3,lv:3,res:5},{n:'町',sp:8,lv:5,res:10},{n:'街',sp:14,lv:8,res:18},{n:'大きな街',sp:24,lv:10,res:30}]; // sp=精霊のランクの ごうけい(さいだい24=8属性×3ランク)
+const ORDER=['火','水','木','風','土','雷','光','闇']; // 精霊がめざめる順番(基本の6属性が先、光と闇は最後)
+const SR=['','下位精霊','上位精霊','大精霊']; // ゲーム内の学年で 強くなる(設計書 第13冊):下位=1・2年生/上位=3・4年生/大精霊=5・6年生
+const MURAL_N=[5,7,9]; // 【仮】ランクごとの 試練の もんだい数
+const RK=a=>W.spirits[a]||0;
+const allowedMax=()=>realOpen(5)?3:realOpen(3)?2:1; // 3年生が ひらく→上位 / 5年生が ひらく→大精霊
+function trialTargets(){const open=ORDER.filter(attrOpen),asleep=open.filter(a=>!RK(a));
+  if(asleep.length)return asleep.map(a=>({a,r:1})); // ひらいている属性が ぜんぶ めざめるまで、1属性ずつ めざめさせる
+  const m=allowedMax();return open.filter(a=>RK(a)<m).map(a=>({a,r:RK(a)+1}))}
+function pickEggAttr(plant){const T=trialTargets().filter(t=>!W.eggs.some(e=>e.a===t.a));if(!T.length)return null;return(T.find(t=>t.a===plant)||T[0]).a}
+const spiritTotal=()=>ATTRS.reduce((n,a)=>n+RK(a),0);
+const townStage=()=>Math.max(0,Math.min(TOWN.length-1,W.town.stage||0));
+function trialInfo(){const T=trialTargets();
+  return`<div class=ht>試練: <b>${spiritTotal()}/24</b> クリア${T.length?`　つぎは:${T.map(t=>`<b style="color:${ACOL[t.a]}">${t.a}</b>の${SR[t.r]}`).join('、')}`:'　(いまの 学年では ぜんぶ クリア。学年が すすむと 次の 試練が ひらくよ)'}</div>`}
+const townOpen=()=>spiritTotal()>=1;
+const DTH=2; // 【仮】ランクの差が 2 以上で 災害
+const DIS_NOTE='';const DIS={火:['火事','火の せいれいが つよすぎて、町が もえそう!'],水:['洪水','水の せいれいが つよすぎて、町が みずびたし!'],木:['草木の あばれ','木の せいれいが つよすぎて、草木が のびすぎた!'],風:['大あらし','風の せいれいが つよすぎて、大あらしに!'],土:['じしん','土の せいれいが つよすぎて、じしんが おきた!'],光:['まぶしすぎる光','光の せいれいが つよすぎて、まぶしくて こまってる!'],闇:['くらやみ','闇の せいれいが つよすぎて、町が まっくらに!'],雷:['かみなり','雷の せいれいが つよすぎて、かみなりが おちる!']};
+const FOODS=[{n:'やさい',e:'🥕',a:'木'},{n:'くだもの',e:'🍎',a:'水'},{n:'おこめ',e:'🌾',a:'土'}];
+const FOOD_YIELD=4,FOOD_COST=1,FOOD_STAGES=2; // 【仮】植える=エネルギー1、そだてる=2回(エネルギー1ずつ)、しゅうかく=食べ物+4
+const foodPlots=()=>Math.min(6,2+townStage());
+function imbalance(){const L=ORDER.filter(x=>attrOpen(x)&&RK(x)>0);if(L.length<2)return{d:0,max:null,min:null,L};
+  let mx=L[0],mn=L[0];L.forEach(a=>{if(RK(a)>RK(mx))mx=a;if(RK(a)<RK(mn))mn=a});
+  return{d:RK(mx)-RK(mn),max:mx,min:mn,L}} // めざめた精霊の ランクの差
+function disasterCheck(force){const T=W.town;if(T.dis)return;const im=imbalance();
+  if(im.d>=DTH&&(force||Math.random()<.5)){T.dis={a:im.max};T.ndis=(T.ndis||0)+1;TWM=`⚠ ${DIS[im.max][0]}が おきたよ! ${DIS[im.max][1]}`}}
+function townTick(afterHatch){const T=W.town,t=todayS(),need=TOWN[townStage()].res;let msg='';
+  while(T.fp.length<foodPlots())T.fp.push({});
+  if(T.dis&&imbalance().d<DTH){T.dis=null;msg='バランスが もどって、災害が おさまったよ!'}
+  if(T.day!==t){ // 1日に1回:ごはんの時間(なん日 あそばなくても、1回ぶんだけ)
+    if(T.day){if(T.stock>=need){T.stock-=need;T.hungry=false}else T.hungry=true}
+    T.day=t;if(!T.dis)disasterCheck(false)}
+  else if(T.hungry&&T.stock>=need){T.stock-=need;T.hungry=false;msg='みんな ごはんを たべて 元気に なったよ!'}
+  if(afterHatch)disasterCheck(true);
+  if(!T.hungry&&!T.dis){const s=townStage()+1;if(s<TOWN.length&&spiritTotal()>=TOWN[s].sp&&wlv()>=TOWN[s].lv){T.stage=s;msg=`町が「${TOWN[s].n}」に なったよ! 住人が ${TOWN[s].res}人に ふえたよ`}}
+  if(msg)TWM=msg;saveW()}
+function townPlant(i,k){const T=W.town,f=FOODS[k];if(!attrOpen(f.a)||T.fp[i].k!=null||W.energy[f.a]<FOOD_COST||T.dis)return;W.energy[f.a]-=FOOD_COST;T.fp[i]={k,s:0};TWM=`${f.n}の たねを うえたよ!`;saveW();render()}
+function townFeed(i){const T=W.town,p=T.fp[i];if(p.k==null||p.s>=FOOD_STAGES||T.dis)return;const f=FOODS[p.k];if(W.energy[f.a]<FOOD_COST)return;W.energy[f.a]-=FOOD_COST;p.s++;TWM=p.s>=FOOD_STAGES?`${f.n}が みのったよ! しゅうかくしよう`:`${f.n}が すこし そだったよ`;saveW();render()}
+function townHarvest(i){const T=W.town,p=T.fp[i];if(p.k==null||p.s<FOOD_STAGES||T.dis)return;const f=FOODS[p.k];T.stock+=FOOD_YIELD;T.fp[i]={};TWM=`${f.n}を しゅうかく! 食べ物 +${FOOD_YIELD}`;townTick();render()}
+let DQ=null;
+function disStart(){const T=W.town;if(!T.dis)return;const c=BEATS[T.dis.a];if(W.energy[c]<2){TWM=`${c}エネルギーが 2 ひつようだよ(${c}の ちからで ${T.dis.a}を おちつかせるよ)`;return render()}DQ=newQ();TWM='';render()}
+function disAnswer(k){const T=W.town;if(!DQ||!T.dis)return;
+  if(k!==DQ.ans){TWM='おしい! もういちど ちょうせんしよう(エネルギーは へらないよ)';DQ=newQ();return render()}
+  const a=T.dis.a,c=BEATS[a];W.energy[c]-=2;T.dis=null;DQ=null;TWM=`${c}の ちからで ${DIS[a][0]}を おさめたよ! (つぎは ほかの せいれいも ふやして バランスを とろう)`;saveW();render()}
+function townSVG(){const n=Math.min(12,2+TOWN[townStage()].res/2|0),st=townStage(),hs=[];
+  for(let i=0;i<n;i++){const x=10+(i%6)*34,y=34+(i/6|0)*30,c=['#f3d9a4','#e8b88a','#d9c2a0'][i%3];hs.push(`<g transform="translate(${x},${y})"><rect x="2" y="9" width="22" height="14" fill="${c}"/><path d="M0 10L13 0L26 10Z" fill="${['#c0583f','#4a78a8','#6b8f4e'][i%3]}"/><rect x="10" y="14" width="6" height="9" fill="#6b4a2c"/></g>`)}
+  return`<svg viewBox="0 0 224 100" style="width:100%;max-width:300px"><rect width="224" height="100" rx="10" fill="${W.town.dis?'#4a2a2a':'#243b2b'}"/>${hs.join('')}${st>=2?'<circle cx="205" cy="22" r="9" fill="#f5e27a"/>':''}</svg>`}
+function townHTML(){
+  const T=W.town,S=TOWN[townStage()],nx=TOWN[townStage()+1],im=imbalance(),tot=spiritTotal();
+  const bars=ATTRS.filter(attrOpen).map(a=>{const c=RK(a);return`<div style="display:flex;align-items:center;gap:6px"><b style="color:${ACOL[a]};width:20px">${a}</b><div style="flex:1;background:#16254a;border-radius:4px;height:10px"><i style="display:block;height:10px;border-radius:4px;background:${ACOL[a]};width:${c/3*100}%"></i></div><span class=ht style="width:64px">${c?SR[c]:'ねむり'}</span></div>`}).join('');
+  const bal=im.d>=DTH?`<span style="color:#FF8A65">かたよっているよ(${im.max}が つよいよ)</span>`:im.d===1?`<span style="color:#FFEB3B">すこし ちがうよ(だいじょうぶ)</span>`:'<span style="color:#9be58b">バランスが いいよ</span>';
+  const need=S.res;
+  let disHTML='';
+  if(T.dis){const a=T.dis.a,c=BEATS[a];
+    if(DQ)disHTML=`<div style="border:2px solid #FF8A65;border-radius:8px;padding:6px;margin:6px 0;text-align:center"><div class=ht style="font-size:15px">${c}の ちからで ${DIS[a][0]}を おさえよう! もんだいに こたえてね</div><div class=ht style="font-size:15px;margin:6px 0">${DQ.text}</div><div>${DQ.ch.map((x,k)=>`<button class=b onclick="disAnswer(${k})">${x}</button>`).join('')}</div><button class="b g sm" onclick="DQ=null;render()">やめる</button></div>`;
+    else disHTML=`<div style="border:2px solid #FF8A65;border-radius:8px;padding:6px;margin:6px 0"><b style="color:#FF8A65">⚠ ${DIS[a][0]}</b><div class=ht>${DIS[a][1]} (町の成長と 食べ物づくりが とまっているよ)</div><div class=ht>なおす方法: ランクの 低い 精霊を 強くして バランスを とる か、${c}エネルギー2で おさえる(もんだいに せいかい)</div><button class="b sm${W.energy[c]>=2?'':' g'}" onclick="disStart()">${c}の ちからで おさえる(${c}-2)</button></div>`}
+  const fp=T.fp.slice(0,foodPlots()).map((p,i)=>{
+    if(p.k==null)return`<div class=pt><div style="font-size:34px;width:60px;text-align:center">🟫</div><div><div class=ht>食べ物の はたけ${i+1}:あいているよ</div><div>${FOODS.map((f,k)=>{const ok=attrOpen(f.a)&&W.energy[f.a]>=FOOD_COST&&!T.dis;return`<button class="b sm${ok?'':' g'}" ${ok?'':'disabled'} onclick="townPlant(${i},${k})">${f.e}${f.n}(${f.a}-${FOOD_COST})</button>`}).join('')}</div></div></div>`;
+    const f=FOODS[p.k],ready=p.s>=FOOD_STAGES,can=W.energy[f.a]>=FOOD_COST&&!T.dis;
+    return`<div class=pt><div style="font-size:34px;width:60px;text-align:center">${ready?f.e:p.s?'🌱':'🌰'}</div><div><div class=ht><b>${f.n}</b> ${p.s}/${FOOD_STAGES}</div>${ready?`<button class=b onclick="townHarvest(${i})" ${T.dis?'disabled':''}>しゅうかく</button>`:`<button class="b sm${can?'':' g'}" ${can?'':'disabled'} onclick="townFeed(${i})">エネルギーを あげる(${f.a}-${FOOD_COST})</button>`}</div></div>`}).join('');
+  return`<div class=ht style="color:#FFEB3B">${TWM||'精霊が すむ町を そだてよう!'}</div>
+  <div style="text-align:center">${townSVG()}<div><b>${S.n}</b>　住人 ${S.res}人　精霊の ちから ${tot}/24</div></div>
+  ${nx?`<div class=ht>次の「${nx.n}」: 精霊の ちから ${nx.sp} + 世界樹Lv${nx.lv} (${tot>=nx.sp?'✔':'×'}精霊 ${wlv()>=nx.lv?'✔':'×'}世界樹)</div>`:'<div class=ht>いちばん大きな街だよ!</div>'}
+  <div class=ht>🍚 食べ物:<b>${T.stock}</b>　まいにち ${need}つ たべるよ ${T.hungry?'<b style="color:#FF8A65">(おなかが すいてるよ! 食べ物を ふやそう)</b>':''}</div>
+  ${disHTML}${fp}
+  <details class=adv ${T.dis?'open':''}><summary>精霊の バランス(${bal})</summary>${bars}<div class=ht>めざめた精霊の ランク(下位・上位・大精霊)の 差が 2 以上に なると、災害が おきるよ。ランクを そろえて バランスを とろう。</div></details>`}
+
 // ===== かいほう:漢字は 学年ごとに80%おぼえると つぎの学年が ひらく / 農園は 世界樹のレベルで すこしずつ ひらく(数字はすべて【仮】) =====
 // 「おぼえた」=その漢字を フラッシュ・動体視力で 2回以上 せいかいした こと。保護者の設定で、ぜんぶ ひらく(制限なし)にもできる
 const GRADE_PCT=.8,LEARNED_N=2,GMAX=7;
@@ -3378,12 +3454,12 @@ const openMax=()=>{let m=1;for(let g=2;g<=GMAX;g++)if(gradeOpen(g))m=g;return m}
 const gradeBtns=bt=>[1,2,3,4,5,6,7].map(i=>gradeOpen(i)?bt(GRADE===i,`setGrade(${i})`,GN(i)):`<button class="b sm g" disabled>🔒${GN(i)}</button>`).join('');
 const gradeNote=()=>{const g=[2,3,4,5,6,7].find(x=>!gradeOpen(x));if(!g)return'';const st=gradeStat(g-1);
   return`<p class=ht style="margin:4px 0">${GN(g-1)}の かんじを 80%(${st.need}もじ)おぼえると ${GN(g)}が ひらくよ。いま ${st.learned}/${st.total}もじ(2かい せいかいで「おぼえた」)</p>`};
-const AU={火:1,水:1,木:1,風:3,土:3,光:4,闇:5,雷:6}; // 【仮】しょくぶつ(と そのぞくせいの たまご)が ひらく 世界樹レベル
+const AU={火:1,水:1,木:1,風:3,土:3,雷:4,光:5,闇:6}; // 【仮】しょくぶつ(と そのぞくせいの たまご)が ひらく 世界樹レベル
 const TABU={cave:2,trap:3,mons:3}; // 【仮】洞窟の壁画=Lv2、まものと わな=Lv3
 const wlv=()=>unlockAll()?99:treeLv(W.tree);
-const attrOpen=a=>wlv()>=AU[a],tabOpen=t=>wlv()>=(TABU[t]||0);
+const attrOpen=a=>wlv()>=AU[a],tabOpen=t=>t==='town'?townOpen():wlv()>=(TABU[t]||0);
 function nextUnlock(){const lv=wlv();if(lv>=99)return'';const L=[];
-  Object.entries(AU).forEach(([a,l])=>{if(l>lv)L.push([l,`${a}の しょくぶつ`])});Object.entries({cave:'洞窟の壁画(たまごを かえす)',trap:'まものと わな'}).forEach(([t,n])=>{if(TABU[t]>lv)L.push([TABU[t],n])});
+  Object.entries(AU).forEach(([a,l])=>{if(l>lv)L.push([l,`${a}の しょくぶつ`])});Object.entries({cave:'洞窟の壁画(たまごが みつかる・かえす)',trap:'まものと わな'}).forEach(([t,n])=>{if(TABU[t]>lv)L.push([TABU[t],n])});
   const plots=[[3,'はたけ4'],[5,'はたけ5'],[8,'はたけ6']].filter(x=>x[0]>lv);L.push(...plots);
   if(!L.length)return'';const m=Math.min(...L.map(x=>x[0])),n=L.filter(x=>x[0]===m).map(x=>x[1]);
   return`<div class=ht>つぎの かいほう:世界樹 Lv${m} で ${n.join('・')}(あたらしく おぼえると 世界樹が そだつよ)</div>`}
