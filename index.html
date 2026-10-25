@@ -3755,9 +3755,16 @@ const kunForm=(c,r)=>(KRK[c]&&KRK[c][r])||c;
 const KRDONE=7; // 読みのデータがある学年(1〜6年生)。読みは作成者が入力した【仮】データ。学校で習う読み方と違うものがあれば直す
 let PLAY='card',LSPD=1,LN=10,RMODE='on',LRN=null;
 const PLAYS=[['card','カードゲーム'],['flash','フラッシュカード'],['dyn','どうたいしりょく']];
-const LSP=[['ゆっくり',2000,2600],['ふつう',1000,1700],['はやい',500,1000]]; // [名前, フラッシュで見せる時間ms, 動体視力で画面を横切る時間ms]
+const LSP=[['ゆっくり',2000,2600],['ふつう',1000,1700],['はやい',500,1000],['ちょうはやい',250,600],['ごうそく',150,350]]; // [名前, フラッシュで見せる時間ms, 動体視力で画面を横切る時間ms]
 const LNS=[5,10,20];
 const shuf=a=>[...a].sort(()=>Math.random()-.5);
+// 元素フラッシュ・動体視力の むずかしさ(やさしい:よく使う10しゅるい/ふつう:22しゅるいぜんぶ/むずかしい:22しゅるい+化合物10。数は【仮】)
+let ELV=1;try{{const v=localStorage.getItem('elemElv');ELV=v===null?1:Math.max(0,Math.min(2,+v||0))}}catch(e){}
+const EL_EASY=['H','He','C','N','O','Na','Cl','Fe','Cu','Au'],ALLOY=['鋼鉄','真鍮','ジュラルミン'];
+const subs=n=>n>1?String(n).replace(/\d/g,d=>'₀₁₂₃₄₅₆₇₈₉'[d]):'';
+const compQ=()=>Object.entries(CONFIG.compounds).map(([n,c])=>{const ks=Object.keys(c.r);return[ALLOY.includes(n)?ks.join('+'):ks.map(k=>k+subs(c.r[k])).join(''),n]});
+const elPool=()=>{const E=ELEMQ.filter(x=>ELV===0?EL_EASY.includes(x[0]):true);return ELV===2?E.concat(compQ()):E};
+const setElv=i=>{ELV=i;try{localStorage.setItem('elemElv',i)}catch(e){}render()};
 function lpick(ans,pool,excl,pref){ // 4択をつくる。pref=まぎらわしい候補(同じ行など)を先に使う
   const ex=new Set([ans,...(excl||[])]),u=[...new Set(pool)].filter(x=>!ex.has(x));
   const p=shuf((pref||[]).filter(x=>!ex.has(x))).slice(0,2),r=shuf(u.filter(x=>!p.includes(x)));
@@ -3766,7 +3773,7 @@ function lpick(ans,pool,excl,pref){ // 4択をつくる。pref=まぎらわし�
 function lq(it){
   let show,ans,ch,ask,det,nt='',disp;let rm=it&&it.rm?it.rm:RMODE;
   if(rm==='mix'&&GAME==='kanji'){const ks=it?['on','kun'].filter(k=>KRM[it.show]&&KRM[it.show][k].length):['on','kun'];rm=rnd(ks.length?ks:['on'])} // 音読みと訓読みを まぜる(1問ごとに どちらか)
-  if(GAME==='element'){const[sy,n]=it?ELEMQ.find(x=>x[0]===it.show):rnd(ELEMQ);show=sy;ans=n;ch=lpick(ans,ELEMQ.map(x=>x[1]));ask='いま でた げんそきごうの なまえは?';det=`${sy} = ${n}`}
+  if(GAME==='element'){const P=elPool(),CQ=compQ(),[sy,n]=it?(P.find(x=>x[0]===it.show)||ELEMQ.find(x=>x[0]===it.show)||CQ.find(x=>x[0]===it.show)):rnd(P),isC=CQ.some(x=>x[0]===sy);show=sy;ans=n;ch=lpick(ans,(isC?CQ:P.filter(x=>!CQ.some(c=>c[0]===x[0]))).map(x=>x[1]));ask=isC?'いま でた しきの かごうぶつの なまえは?':'いま でた げんそきごうの なまえは?';det=`${sy} = ${n}`}
   else if(GAME==='hira'||GAME==='kata'){const L=[...(GAME==='hira'?HIRA46:KATA46)],i=it?L.indexOf(it.show):Math.random()*46|0,rw=ROWOF[HIRA46[i]];
     show=L[i];ans=show;ch=lpick(ans,L,[],L.filter((c,j)=>ROWOF[HIRA46[j]]===rw));ask='いま でた もじは どれ?';det=`「${show}」`}
   else if(GAME==='alpha'){const lo=it?it.show===it.show.toLowerCase():Math.random()<.5,L=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(c=>lo?c.toLowerCase():c);
@@ -3877,6 +3884,7 @@ function learnMenuHTML(){
   return`${nav()}<div class=mn>${statusBar()}${homeMissionHTML()}${playRow()}<h2>${GAMES.find(x=>x[0]===GAME)[1]}の ${PLAY==='flash'?'フラッシュカード':'どうたいしりょく'}</h2>
   <p>${PLAY==='flash'?'ぱっと でる カードを みて、きえたら こたえを えらぶよ':'うごく もじを めで おって、きえたら こたえを えらぶよ'}</p>
   <p>ゲームを選んでください</p><div>${GAMES.filter(secOK).map(([g,l])=>bt(GAME===g,`setGame('${g}')`,l,' nt')).join('')}</div>
+  ${GAME==='element'?`<p>むずかしさ</p><div>${[['やさしい','10しゅるい'],['ふつう','22しゅるい'],['むずかしい','22しゅるい+化合物10']].map((x,i)=>bt(ELV===i,`setElv(${i})`,`${x[0]}(${x[1]})`)).join('')}</div>`:''}
   ${GAME==='kanji'?`<p>学年を選んでください</p><div>${gradeBtns(bt)}</div>${gradeNote()}
     <p>よみかた</p><div>${bt(RMODE==='on',"setRm('on')",'おんよみ')}${bt(RMODE==='kun',"setRm('kun')",'くんよみ')}${bt(RMODE==='mix',"setRm('mix')",'まぜる')}</div>`:''}
   <p>${PLAY==='flash'?'カードを みせる じかん':'うごく はやさ'}</p><div>${LSP.map((x,i)=>bt(LSPD===i,`setLspd(${i})`,`${x[0]}(${(PLAY==='flash'?x[1]:x[2])/1000}秒)`)).join('')}</div>
