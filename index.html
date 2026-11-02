@@ -192,6 +192,18 @@ td,th{border-bottom:1px solid #223052;padding:4px}
 .fcchr{position:absolute;bottom:0;pointer-events:none;filter:drop-shadow(0 .4cqw .6cqw rgba(0,0,0,.45))}
 .fcgear{position:absolute;left:1.2%;top:2%;width:6.2%;z-index:3;background:none;border:0;padding:0;cursor:pointer}.fcgear img{width:100%;display:block;filter:drop-shadow(0 .4cqw .8cqw rgba(0,0,0,.5));transition:transform .2s}.fcgear:active img{transform:rotate(30deg)}
 @media (max-aspect-ratio:1/1){.fcw{top:0;transform:translateX(-50%)}.fcb{padding-left:9%}}
+
+.fcbg{background-image:var(--fcbg)}.fcl,.fcr{display:none}
+@media (min-aspect-ratio:16/9){
+  .fcbg{display:none}
+  .fcl,.fcr{display:block;position:fixed;top:0;height:100dvh;background-image:var(--fcbg)}
+  .fcl{left:0;width:calc(50vw - 50.56dvh);background-size:463.9% 100%;background-position:0 0}
+  .fcr{right:0;width:calc(50vw - 49.5dvh);background-size:451.4% 100%;background-position:100% 0}
+  .fcimg{clip-path:inset(0 22.16% 0 21.56%)}
+  .fcq{display:none}
+  .fcq2{position:absolute;left:1.4%;top:8%;width:77%;height:5%;display:flex;align-items:center;justify-content:center;gap:.8vh;color:#fff6d8;font-size:3vh;white-space:nowrap}.fcq2 b{font-size:3.2vh}
+}
+@media not all and (min-aspect-ratio:16/9){.fcq2{display:none}}
 .nav{flex-wrap:wrap;display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px}
 .lst{flex:1;min-height:0;position:relative;overflow:hidden;border:1px solid #223052;border-radius:10px;margin:6px 0;display:flex;align-items:center;justify-content:center;flex-direction:column;touch-action:manipulation}
 .lit{font-weight:800;line-height:1.1;font-size:min(34vw,34vh);white-space:nowrap}.lit.mv{position:absolute;left:0;top:0;font-size:min(20vw,20vh)}.lit.fixed{font-size:min(24vw,24vh)}
@@ -3996,7 +4008,7 @@ function lq(it){
     if(rm==='kun'){const sa=kstem(ans),own=KRM[c].kun.map(kstem),oth=shuf([...new Set(pool.map(kstem))].filter(x=>x!==sa&&!own.includes(x)));ans=sa;ch=shuf([sa,...oth.slice(0,3)])}
     ask=`この かんじの ${rm==='on'?'おんよみ':'くんよみ'}は?`;
     det=`<span class=nt>${c}</span>　おん:${KRM[c].on.join('・')||'—'}　くん:${KRM[c].kun.map(r=>kunForm(c,r)===c?r:kunForm(c,r)+'('+r+')').join('・')||'—'}`}
-  return{show,disp:disp||show,ans,ch,ask,det,nt,col:rnd(PAL),key:GAME+rm+show,rm};
+  return{show,disp:disp||show,ans,ch,ask,det,nt,col:rnd(PAL),key:GAME+rm+show,rm,say:rm==='kun'?(disp||show):ans};
 }
 // ===== にがてきろく:まちがえたものをためて、あとでもう一度出す(設計書:苦手文字システム) =====
 // 【仮】まちがえると にがてレベル3。れんしゅうで せいかいするたびに1つ下がり、0になると「できた!」スタンプ。数字は仮
@@ -4028,7 +4040,7 @@ function kwrite(it){ // 熟語(2〜3字)の 1字を □ か 下線の ひらが�
   let pl2=pool.filter(d=>!COMMON.includes(d));if(pl2.length<3)pl2=pool;
   const ch=shuf([x.c,...shuf(pl2).slice(0,3)]);
   const ul=true,part=ul?`<u style="text-decoration-thickness:3px">${x.hira}</u>`:'□',rr=KWW.find(w=>w.k===x.w).r;let disp=x.cs.map((c,k)=>k===x.i?part:`<ruby>${c}<rt>${rr[k]}</rt></ruby>`).join('');disp=`<span style="font-size:${x.cs.length>2?.55:.7}em;white-space:nowrap">${disp}</span>`; // 問題に なっていない漢字には ふりがな
-  return{show:x.c,disp,ans:x.c,ch,ask:ul?'線の ひらがなを 漢字に なおすと?':`「${x.hira}」と 読む □に あてはまる 漢字は?`,det:`<span class=nt>${x.w}</span>(${x.c}=「${x.hira}」)`,nt:' nt',col:rnd(PAL),key:GAME+'w'+x.w+x.c,rm:'w'}}
+  return{show:x.c,disp,ans:x.c,ch,ask:ul?'線の ひらがなを 漢字に なおすと?':`「${x.hira}」と 読む □に あてはまる 漢字は?`,det:`<span class=nt>${x.w}</span>(${x.c}=「${x.hira}」)`,nt:' nt',col:rnd(PAL),key:GAME+'w'+x.w+x.c,rm:'w',say:x.w}}
 const setLspd=i=>{LSPD=i;render()},setLn=n=>{LN=n;render()},setRm=m=>{RMODE=m;render()};
 // ===== 親子ポイントのもらいかた(【仮】) =====
 // あたらしく おぼえた(はじめて せいかい): ⭐5 + 世界樹+1 + 元素エネルギー2 / ふくしゅう: その日の1回目 ⭐2、2回目 ⭐1、3回目から0(くりかえしで かせげない)
@@ -4066,7 +4078,7 @@ function learnAnswer(k){
   if(ok){earnLearn(L.q);if(L.cleared.length>c0){L.gain.lp+=3;W.lp+=3}}
   saveW();
   if(ok){L.ok++;SE.pair();L.tm=setTimeout(learnNext,1300)}else{SE.miss();L.wrong.push({show:L.q.show,det:L.q.det,nt:L.q.nt})}
-  if(GAME==='kanji')speak(L.q.ans);
+  if(GAME==='kanji')speak(L.q.say||L.q.ans); // 熟語は 熟語ぜんたいを よむ(林だけだと「はやし」に なるため)
   render();
 }
 function learnNext(){const L=LRN;if(!L||L.phase!=='fb')return;clearTimeout(L.tm);L.i++;
@@ -4106,12 +4118,12 @@ function fcHTML(L,q,show,fb,nm){
     :`<div class=lq>?</div><div class=ldet>${q.ask}</div>`;
   const btns=q.ch.map((c,k)=>{const st=fb?(c===q.ans?' ok':k===L.pick?' ng':' g'):'',[x,y,w,h]=FC_CH[k],fs=Math.min(3.6,15/Math.max(1,[...String(c).replace(/<[^>]*>/g,'')].length));
     return`<button class="fcb${q.nt}${st}" ${fb?'disabled':''} onclick=learnAnswer(${k}) style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;font-size:${fs}cqw">${c}</button>`}).join('');
-  return`<div class=fcbg style="background-image:url(${FCA.bg})"></div><div class=fcw><img class=fcimg src="${FCA.bg}" alt="">
+  return`<div class=fcroot style="--fcbg:url(${FCA.bg})"><div class=fcbg></div><div class=fcl></div><div class=fcr><div class=fcq2><b>${L.i+1}/${L.n}</b><span>${L.queue?'にがて ':''}せいかい ${L.ok}</span></div></div><div class=fcw><img class=fcimg src="${FCA.bg}" alt="">
   <div class=fcq><b>${L.i+1}/${L.n}</b><span>${L.queue?'にがて ':''}せいかい ${L.ok}</span></div>
   <div id=lst class="lst fcard">${stage}${show?`<div class=lhint>${q.ask}</div>`:''}${fb&&q.ch[L.pick]!==q.ans?`<button class="b fcnext" onclick=learnNext()>つぎへ</button>`:''}</div>
   <div class=fcch style="visibility:${show?'hidden':'visible'}">${btns}</div>
   <img class=fcchr style="left:0;height:46%" src="${Lu[0]}" alt=""><img class=fcchr style="right:0;height:46%" src="${P[0]}" alt="">
-  <button class=fcgear aria-label="設定" onclick="view('fgear')"><img src="${HL_BTN.gear[0]}" alt="設定"></button></div>${V==='quit'||V==='fgear'||V==='rules'?modal():''}`;
+  <button class=fcgear aria-label="設定" onclick="view('fgear')"><img src="${HL_BTN.gear[0]}" alt="設定"></button></div></div>${V==='quit'||V==='fgear'||V==='rules'?modal():''}`;
 }
 function litFit(){ // 問題の文字が 枠に はいりきらないときは、小さくする
   const st=document.getElementById('lst');if(!st)return;st.querySelectorAll('.lit').forEach(el=>{
