@@ -141,7 +141,7 @@ td,th{border-bottom:1px solid #223052;padding:4px}
 @media (max-aspect-ratio:6/5){
   .hlw{align-items:flex-start}
   .hl{width:100vw;aspect-ratio:auto;display:flex;flex-direction:column;padding-bottom:20px}
-  .hl .hpic{position:relative;inset:auto;aspect-ratio:16/9;order:2}
+  .hl .hpic{position:relative;inset:auto;left:auto;bottom:auto;top:auto;width:100%;transform:none;aspect-ratio:16/9;order:2}
   .hl .hb{position:static;order:3;width:auto;display:grid;grid-template-columns:1fr 1fr;gap:3cqw;padding:3cqw 3cqw 1cqw}
   .hl .st{position:static;order:1;width:auto;margin:2cqw 18cqw 0 2cqw;font-size:13px;padding:3px 10px;border-radius:14px}
   .hl .gr{position:absolute;right:2cqw;top:1.5cqw;width:14cqw}
@@ -163,6 +163,20 @@ td,th{border-bottom:1px solid #223052;padding:4px}
 #pt .ptw button{position:absolute;background:none;border:0;border-radius:3%;cursor:pointer;padding:0;transition:box-shadow .15s,background .15s}
 #pt .ptw button:hover,#pt .ptw button:focus-visible{box-shadow:0 0 0 .5vmin #ffe27a,0 0 4vmin rgba(255,226,122,.8);background:rgba(255,255,255,.08)}
 #pt .ptw button:active{background:rgba(255,255,255,.28)}
+
+@media (min-aspect-ratio:121/100){
+  .hlw{align-items:stretch}
+  .hl{width:100vw;height:100dvh;aspect-ratio:auto;overflow:hidden}
+  .hl .hpic{inset:auto;left:50%;bottom:0;top:auto;width:max(100vw,calc(100dvh*16/9));height:auto;aspect-ratio:16/9;transform:translateX(-50%);overflow:hidden}
+  .hl .hpic .bgi{object-fit:fill}
+}
+@media (max-width:900px) and (min-aspect-ratio:121/100){.hl .hb{width:21%}.hl .pbtn{width:13%}.hl .st{width:30%}}
+
+.lst{container-type:size}
+.lit{font-size:min(34cqw,38cqh)}.lit.mv{font-size:min(20cqw,24cqh)}.lit.fixed{font-size:min(22cqw,30cqh)}
+.lq{font-size:min(30cqw,36cqh)}
+.ldet{font-size:clamp(12px,min(4cqw,6cqh),20px)}
+@media (max-height:520px){.lch{gap:5px}.lch .b{padding:6px 4px;font-size:clamp(14px,4.5vh,22px)}.hd .nav{margin-bottom:0}}
 .nav{flex-wrap:wrap;display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px}
 .lst{flex:1;min-height:0;position:relative;overflow:hidden;border:1px solid #223052;border-radius:10px;margin:6px 0;display:flex;align-items:center;justify-content:center;flex-direction:column;touch-action:manipulation}
 .lit{font-weight:800;line-height:1.1;font-size:min(34vw,34vh);white-space:nowrap}.lit.mv{position:absolute;left:0;top:0;font-size:min(20vw,20vh)}.lit.fixed{font-size:min(24vw,24vh)}
@@ -4072,9 +4086,14 @@ function learnHTML(){
   <div class=lch style="visibility:${show?'hidden':'visible'}">${q.ch.map((c,k)=>`<button class="b${q.nt}${fb?(c===q.ans?' ok':k===L.pick?' ng':' g'):''}" ${fb?'disabled':''} onclick=learnAnswer(${k})>${c}</button>`).join('')}</div>
   <div class=act>${fb&&q.ch[L.pick]!==q.ans?`<button class=b onclick=learnNext()>つぎへ</button>`:''}</div>${V==='quit'?modal():''}`;
 }
+function litFit(){ // 問題の文字が 枠に はいりきらないときは、小さくする
+  const st=document.getElementById('lst');if(!st)return;st.querySelectorAll('.lit').forEach(el=>{
+    const fixed=el.classList.contains('fixed'),mv=el.classList.contains('mv');el.style.fontSize='';let fs=parseFloat(getComputedStyle(el).fontSize),n=0;
+    const maxH=st.clientHeight*(fixed?.5:.82),maxW=st.clientWidth*.94;
+    while(n++<30&&(el.scrollWidth>maxW||el.offsetHeight>maxH)&&fs>14){fs*=.9;el.style.fontSize=fs+'px'}})}
 function learnRender(){
   $('app').className='game';if(document.body&&document.body.classList)document.body.classList.add('gm');
-  $('app').innerHTML=learnHTML();kanaDom();learnAnim();
+  $('app').innerHTML=learnHTML();kanaDom();litFit();learnAnim();
 }
 function learnMenuHTML(){
   const bt=(on,fn,label,cls)=>`<button class="b sm${on?'':' g'}${cls||''}" onclick="${fn}">${label}</button>`;
@@ -4294,9 +4313,9 @@ let HMOPEN=false; // ホームのミッションは、ふだんは閉じてお�
 function homeMissionHTML(){
   if(!msOn())return'';
   const dayN=Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
-  const p=RW.pend[0],open=RW.missions.filter(m=>m.kind==='luna'&&(m.daily<=0||msUsed(m.id)<m.daily));
+  const p=RW.pend[0],open=RW.missions.filter(m=>(m.daily<=0||msUsed(m.id)<m.daily));
   let t,btn='';
-  if(p){t=`<b style="color:#FFEB3B">ルナ先生</b><br>「<b>${esc(p.name)}</b>」…はなせたかな? おうちの ひとに きいてもらってね!`;
+  if(p){t=`<b style="color:#FFEB3B">ルナ先生</b><br>「<b>${esc(p.name)}</b>」…${(RW.missions.find(m=>m.id===p.mid)||{}).kind==='help'?'できたかな?':'はなせたかな?'} おうちの ひとに きいてもらってね!`;
     btn=`<button class="b sm" onclick="MASKID=${p.id};MMSG='';view('mission')">👂 聞いたよ</button>`}
   else if(open.length){const m=open[dayN%open.length];t=`<b style="color:#FFEB3B">ルナ先生</b><br>きょうの ミッションだよ!<br><b>${esc(m.name)}</b>　⭐ +${m.pts}`;
     btn=`<button class="b sm" onclick="msDo(${m.id})">やったよ!</button>`}
@@ -4681,7 +4700,7 @@ function homeGo(id){HMSG='';
   if(id==='book'){if(!tabOpen('spirit')){HMSG='まだ ひらいていないよ';render();return}openWorld('spirit');return}}
 // ===== ホームの 歯車ボタン(設定)と ルナ先生の ミッション ふきだし =====
 function lunaBubble(){if(!msOn())return'';
-  const open=RW.missions.filter(m=>m.kind==='luna'&&(m.daily<=0||msUsed(m.id)<m.daily)),badge=RW.pend.length?'●':open.length?'!':'';
+  const open=RW.missions.filter(m=>(m.daily<=0||msUsed(m.id)<m.daily)),badge=RW.pend.length?'●':open.length?'!':'';
   return`<button onclick="HMOPEN=true;view('lm')" aria-label="ルナ先生のミッション" style="position:absolute;left:12%;top:58.5%;width:30%;padding:5px 6px;font-size:clamp(10px,3.3vw,15px);line-height:1.2;font-weight:700;color:#1d2b4f;background:#fffdf0;border:2px solid #c9a24a;border-radius:14px;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.4)">💬 ミッション${badge?` <span style="color:#e53935">${badge}</span>`:''}<span style="position:absolute;left:10%;bottom:-9px;width:0;height:0;border:7px solid transparent;border-top-color:#c9a24a;border-bottom:0"></span></button>`}
 function lunaMsModal(){return`<div class=ov><div class=md>${homeMissionHTML()}<div style="text-align:center;margin-top:8px"><button class=b onclick="HMOPEN=false;view(null)">閉じる</button></div></div></div>`}
 function gearModal(){const gb=(f,l)=>`<button class="b" style="display:block;width:100%;margin:6px 0;text-align:left" onclick="${f}">${l}</button>`;
@@ -4694,9 +4713,9 @@ const HLA={"bg": {"lv1": "data:image/webp;base64,UklGRgBAAwBXRUJQVlA4IPQ/AwBwxQm
 const HL_BTN=HLA.btn;
 function missionBubbleHTML(){
   const dayN=Math.floor((Date.now()-new Date().getTimezoneOffset()*6e4)/864e5);
-  const p=RW.pend[0],open=RW.missions.filter(m=>m.kind==='luna'&&(m.daily<=0||msUsed(m.id)<m.daily));
+  const p=RW.pend[0],open=RW.missions.filter(m=>(m.daily<=0||msUsed(m.id)<m.daily));
   let t,btn='';
-  if(p){t=`「<b style="color:#c0392b">${esc(p.name)}</b>」…はなせたかな?<br>おうちの ひとに きいてもらってね!`;btn=`<button class="b sm" onclick="MASKID=${p.id};MMSG='';view('mission')">👂 聞いたよ</button>`}
+  if(p){t=`「<b style="color:#c0392b">${esc(p.name)}</b>」…${(RW.missions.find(m=>m.id===p.mid)||{}).kind==='help'?'できたかな?':'はなせたかな?'}<br>おうちの ひとに きいてもらってね!`;btn=`<button class="b sm" onclick="MASKID=${p.id};MMSG='';view('mission')">👂 聞いたよ</button>`}
   else if(open.length){const m=open[dayN%open.length];t=`<b>${esc(m.name)}</b> <small>⭐ +${m.pts}</small>`;btn=`<button class="b sm" onclick="msDo(${m.id})">やったよ!</button>`}
   else t='きょうの ミッションは ぜんぶ おわったよ! えらいね! また あしたね。';
   const plain=(t.replace(/<[^>]*>/g,'')).length,fs=plain<=30?1:plain<=45?.88:plain<=60?.76:.65;
@@ -4711,11 +4730,11 @@ function mapHomeHTML(){
   const bt=(id,k,pk,cls,n)=>{const lk=(id==='town'&&tl)||(id==='spirit'&&sl);if(lk)return`<button class="${cls||''} lk2" aria-label="${n}" onclick="homeGo('${id}')"><img class=nm src="${HL_LOCK[id==='town'?'townl':'spiritl'][0]}" alt="${n}(まだ ひらかないよ)"></button>`;return`<button class="${cls||''}" aria-label="${n}" onclick="homeGo('${id}')"><img class=nm src="${B[k][0]}" alt="${n}">${pk?`<img class=pr src="${B[pk][0]}" alt="">`:''}</button>`};
   const PK={火:'mikan',水:'sora',木:'hana'},pk=PK[getPartner()],ch=(pk?[[pk,50,.9],['luna',30,1]]:[['hana',63,.88],['sora',53,.9],['mikan',45,.82],['luna',26,1]]).map(([k,x,sc],i)=>`<img src="${C[k][0]}" alt="" style="left:${x}%;height:${100*sc}%;animation-delay:${-i*.9}s">`).join('');
   return`<div class=hlw style="background:#050914"><div class=hl><div class=hpic><img class=bgi src="${HLA.bg[homeBgKey()]}" alt="ルナ先生の世界">
-  <div class="gt ${tl?'lk':'op'}" role=button aria-label="洞窟(町へ)" onclick="homeGo('cave')" ></div><div class=hchs>${ch}</div></div>
+  <div class="gt ${tl?'lk':'op'}" role=button aria-label="洞窟(町へ)" onclick="homeGo('cave')" ></div><div class=hchs>${ch}</div>
+${msOn()?(HMOPEN?missionBubbleHTML():`<button class=mt aria-label="今日のミッション" onclick="HMOPEN=true;render()"><img src="${B.mis[0]}" alt="今日のミッション">${RW.pend.length?'<i class=bd>●</i>':RW.missions.some(m=>(m.daily<=0||msUsed(m.id)<m.daily))?'<i class=bd>!</i>':''}</button>`):''}</div>
   <button class=pbtn aria-label="相棒変更" onclick="ptStart()"><img class=nm src="${PT_BTN[0]}" alt="相棒変更"><img class=pr src="${PT_BTN[1]}" alt=""></button>
   <div class=st>${homeStatus2()}</div><button class=gr aria-label="設定" onclick="view('gear')"><img src="${B.gear[0]}" alt="設定"></button>
   <div class=hb>${bt('word','word','wordp','','ことばの冒険')}${bt('elem','elem','elemp','','元素ワールド')}${bt('town','town',null,'tw','町づくり')}${bt('spirit','spirit','spiritp','','精霊育成')}</div>
-  ${msOn()?(HMOPEN?missionBubbleHTML():`<button class=mt aria-label="今日のミッション" onclick="HMOPEN=true;render()"><img src="${B.mis[0]}" alt="今日のミッション">${RW.pend.length?'<i class=bd>●</i>':RW.missions.some(m=>m.kind==='luna'&&(m.daily<=0||msUsed(m.id)<m.daily))?'<i class=bd>!</i>':''}</button>`):''}
   <div class=hmsg>${HMSG||'ボタンや 洞窟を タップして すすもう!'}</div></div></div>${V?modal():INTRO?introHTML():''}`}
 function menuHTML(){
   if(HOMEMAP&&!LRN)return mapHomeHTML();
