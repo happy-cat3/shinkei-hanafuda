@@ -164,11 +164,11 @@ td,th{border-bottom:1px solid #223052;padding:4px}
 #pt .ptw button:hover,#pt .ptw button:focus-visible{box-shadow:0 0 0 .5vmin #ffe27a,0 0 4vmin rgba(255,226,122,.8);background:rgba(255,255,255,.08)}
 #pt .ptw button:active{background:rgba(255,255,255,.28)}
 
-@media (min-aspect-ratio:121/100){
-  .hlw{align-items:stretch}
-  .hl{width:100vw;height:100dvh;aspect-ratio:auto;overflow:hidden}
-  .hl .hpic{inset:auto;left:50%;bottom:0;top:auto;width:max(100vw,calc(100dvh*16/9));height:auto;aspect-ratio:16/9;transform:translateX(-50%);overflow:hidden}
-  .hl .hpic .bgi{object-fit:fill}
+.hlw .hf1,.hlw .hf2{display:none}
+@media (min-aspect-ratio:16/9){
+  .hlw .hf1,.hlw .hf2{display:block;position:fixed;top:0;height:100dvh;width:calc(50vw - 88.9dvh + 1px);background-image:var(--hbg);background-size:667% 100%;transform:scaleX(-1);z-index:0}
+  .hlw .hf1{left:0;background-position:left top}.hlw .hf2{right:0;background-position:right top}
+  .hl{position:relative;z-index:1}
 }
 @media (max-width:900px) and (min-aspect-ratio:121/100){.hl .hb{width:21%}.hl .pbtn{width:13%}.hl .st{width:30%}}
 
@@ -3997,6 +3997,8 @@ const KOK=`一 ひと.つ
 狩 か.る,かり`;
 const KRK={}; // KRK[漢字][読み]=画面に出す形(送り仮名つき)
 KOK.split('\n').forEach(l=>{const[c,k]=l.split(' ');if(!KRM[c])return;KRK[c]={};k.split(',').forEach(x=>{const[s,o]=x.split('.');KRK[c][s+(o||'')]=c+(o||'')})});
+const h2=t=>String(t).replace(/[ァ-ン]/g,x=>String.fromCharCode(x.charCodeAt(0)-96));
+const allRd=c=>{const k=KRM[c];if(!k)return new Set();const S=new Set();k.on.forEach(x=>S.add(h2(x)));k.kun.forEach(x=>{S.add(h2(x));S.add(h2(kstem(x)))});return S}; // その漢字の ぜんぶの 読み(音・訓)。まちがいの選択肢に 入れない(音と訓で おなじ 読みに なって 正解が 2つに ならないように)
 const kunForm=(c,r)=>(KRK[c]&&KRK[c][r])||c;
 const R2S={};KOK.split('\n').forEach(l=>{const k=(l.split(' ')[1]||'');k.split(',').forEach(x=>{const[st,o]=x.split('.');if(st)R2S[st+(o||'')]=R2S[st+(o||'')]||st})});const kstem=r=>R2S[r]||r; // 訓読みの 選択肢は 送りがなを のぞいた 部分だけ(ただしい→ただ)
 const KRDONE=7; // 読みのデータがある学年(1〜6年生)。読みは作成者が入力した【仮】データ。学校で習う読み方と違うものがあれば直す
@@ -4028,9 +4030,9 @@ function lq(it){
   else if(GAME==='alpha'){const lo=it?it.show===it.show.toLowerCase():Math.random()<.5,L=[...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map(c=>lo?c.toLowerCase():c);
     show=it?it.show:rnd(L);ans=show;ch=lpick(ans,L);ask='いま でた もじは どれ?';det=`「${show}」`}
   else{const gr=it?Math.max(GRADE,KG[it.show]):GRADE,cs=Object.keys(KRM).filter(c=>KG[c]<=gr&&KRM[c][rm].length),c=it?it.show:rnd(cs);
-    const pool=[];cs.forEach(x=>KRM[x][rm].forEach(r=>pool.push(r)));
+    const pool=[];const ar=allRd(c);cs.forEach(x=>KRM[x][rm].forEach(r=>{if(!ar.has(h2(r))||KRM[c][rm].includes(r))pool.push(r)}));
     show=c;ans=rnd(KRM[c][rm]);ch=lpick(ans,pool,KRM[c][rm]);nt=' nt';disp=rm==='kun'?kunForm(c,ans):c;
-    let full=ans;if(rm==='kun'){const sa=kstem(ans),own=KRM[c].kun.map(kstem),oth=shuf([...new Set(pool.map(kstem))].filter(x=>x!==sa&&!own.includes(x)));ans=sa;ch=shuf([sa,...oth.slice(0,3)])}
+    let full=ans;if(rm==='kun'){const sa=kstem(ans),own=KRM[c].kun.map(kstem),oth=shuf([...new Set(pool.map(kstem))].filter(x=>x!==sa&&!own.includes(x)&&!ar.has(h2(x))));ans=sa;ch=shuf([sa,...oth.slice(0,3)])}
     var sayFull=full;
     ask=`この かんじの ${rm==='on'?'おんよみ':'くんよみ'}は?`;
     det=`<span class=nt>${c}</span>　おん:${KRM[c].on.join('・')||'—'}　くん:${KRM[c].kun.map(r=>kunForm(c,r)===c?r:kunForm(c,r)+'('+r+')').join('・')||'—'}`}
@@ -4142,7 +4144,7 @@ function fcHTML(L,q,show,fb,nm){
   const stage=show?`<div id=lit class="lit ${PLAY==='dyn'?'mv':''}${q.nt}" style="color:${q.col}">${q.disp||q.show}</div>`
     :fb?`<div class="lit fixed${q.nt}" style="color:${q.col}">${q.disp||q.show}</div><div class=ldet>${L.pick>=0&&q.ch[L.pick]===q.ans?'せいかい!':'ざんねん…'}<br>${q.det}</div>`
     :`<div class=lq>?</div><div class=ldet>${q.ask}</div>`;
-  const btns=q.ch.map((c,k)=>{const st=fb?(c===q.ans?' ok':k===L.pick?' ng':' g'):'',[x,y,w,h]=FC_CH[k],fs=Math.min(3.6,15/Math.max(1,[...String(c).replace(/<[^>]*>/g,'')].length));
+  const btns=q.ch.map((c,k)=>{const st=fb?(c===q.ans?' ok':k===L.pick?' ng':' g'):'',[x,y,w,h]=FC_CH[k],fs=Math.min(5.4,16.5/Math.max(1,[...String(c).replace(/<[^>]*>/g,'')].length));
     return`<button class="fcb${q.nt}${st}" ${fb?'disabled':''} onclick=learnAnswer(${k}) style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;font-size:${fs}cqw">${c}</button>`}).join('');
   return`<div class=fcroot style="--fcbg:url(${FCA.bg})"><div class=fcbg></div><div class=fcl></div><div class=fcr><div class=fcq2><b>${L.i+1}/${L.n}</b><span>${L.queue?'にがて ':''}せいかい ${L.ok}</span></div></div><div class=fcw><img class=fcimg src="${FCA.bg}" alt="">
   <div class=fcq><b>${L.i+1}/${L.n}</b><span>${L.queue?'にがて ':''}せいかい ${L.ok}</span></div>
@@ -4823,7 +4825,7 @@ function mapHomeHTML(){
   const tl=!tabOpen('town'),sl=treeLv(W.tree)<SPIRIT_LOCK_LV||!townOpen(),B=HL_BTN,C=HLA.ch;
   const bt=(id,k,pk,cls,n)=>{const lk=(id==='town'&&tl)||(id==='spirit'&&sl);if(lk)return`<button class="${cls||''} lk2" aria-label="${n}" onclick="homeGo('${id}')"><img class=nm src="${HL_LOCK[id==='town'?'townl':'spiritl'][0]}" alt="${n}(まだ ひらかないよ)"></button>`;return`<button class="${cls||''}" aria-label="${n}" onclick="homeGo('${id}')"><img class=nm src="${B[k][0]}" alt="${n}">${pk?`<img class=pr src="${B[pk][0]}" alt="">`:''}</button>`};
   const PK={火:'mikan',水:'sora',木:'hana'},pk=PK[getPartner()],ch=(pk?[[pk,50,.9],['luna',30,1]]:[['hana',63,.88],['sora',53,.9],['mikan',45,.82],['luna',26,1]]).map(([k,x,sc],i)=>`<img src="${C[k][0]}" alt="" style="left:${x}%;height:${100*sc}%;animation-delay:${-i*.9}s">`).join('');
-  return`<div class=hlw style="background:#050914"><div class=hl><div class=hpic><img class=bgi src="${HLA.bg[homeBgKey()]}" alt="ルナ先生の世界">
+  return`<div class=hlw style="background:#050914;--hbg:url(${HLA.bg[homeBgKey()]})"><i class=hf1></i><i class=hf2></i><div class=hl><div class=hpic><img class=bgi src="${HLA.bg[homeBgKey()]}" alt="ルナ先生の世界">
   <div class="gt ${tl?'lk':'op'}" role=button aria-label="洞窟(町へ)" onclick="homeGo('cave')" ></div><div class=hchs>${ch}</div>
 ${msOn()?(HMOPEN?missionBubbleHTML():`<button class=mt aria-label="今日のミッション" onclick="HMOPEN=true;render()"><img src="${B.mis[0]}" alt="今日のミッション">${RW.pend.length?'<i class=bd>●</i>':RW.missions.some(m=>(m.daily<=0||msUsed(m.id)<m.daily))?'<i class=bd>!</i>':''}</button>`):''}</div>
   <button class=pbtn aria-label="相棒変更" onclick="ptStart()"><img class=nm src="${PT_BTN[0]}" alt="相棒変更"><img class=pr src="${PT_BTN[1]}" alt=""></button>
