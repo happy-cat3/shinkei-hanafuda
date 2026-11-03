@@ -229,6 +229,14 @@ td,th{border-bottom:1px solid #223052;padding:4px}
 .wst{display:block;width:26cqw;margin:.5cqw auto 0}
 .wrec{display:inline-block;margin-top:.6cqw;max-width:94cqw;background:rgba(10,16,40,.72);color:#eaf4ff;border-radius:2cqw;padding:.8cqw 2cqw;font-size:max(11px,1.7cqw);line-height:1.4}
 @media (max-aspect-ratio:1/1){.wms{width:100vw}.wmp{width:96cqw}.wr label{font-size:3.4cqw}.wsel select{font-size:3.6cqw}.wemb{width:70cqw}.wmm .wmb{width:44cqw}.wst{width:50cqw}}
+
+.wml{display:contents}.wms{display:flex;flex-direction:column;align-items:center}.wemb{order:1}.wmm{order:2}.wmp{order:3}.wst{order:4}.wrec{order:5}
+@media (min-aspect-ratio:12/10){
+ .wms{width:min(100vw,calc(100dvh*2.2));flex-direction:row;justify-content:center;gap:2.2cqw;min-height:100dvh;padding:0 2cqw;align-items:center}
+ .wml{display:flex;flex-direction:column;align-items:stretch;gap:1.8cqw;width:26cqw;flex:none}
+ .wml .wemb{width:100%;padding:0}.wml .wmm{flex-direction:column;gap:1.4cqw;margin:0}.wml .wmm .wmb{width:100%}.wml .wst{width:100%;margin:.6cqw 0 0}.wml .wrec{margin:0}
+ .wmp{width:66cqw;margin:0;flex:none}
+}
 .nav{flex-wrap:wrap;display:flex;gap:6px;justify-content:flex-end;margin-bottom:6px}
 .lst{flex:1;min-height:0;position:relative;overflow:hidden;border:1px solid #223052;border-radius:10px;margin:6px 0;display:flex;align-items:center;justify-content:center;flex-direction:column;touch-action:manipulation}
 .lit{font-weight:800;line-height:1.1;font-size:min(34vw,34vh);white-space:nowrap}.lit.mv{position:absolute;left:0;top:0;font-size:min(20vw,20vh)}.lit.fixed{font-size:min(24vw,24vh)}
@@ -4176,14 +4184,14 @@ function wordMenuHTML(){
   const rm=(m,k,l)=>`<button class="wmb${RMODE===m?' on':''}" aria-label="${l}" onclick="setRm('${m}')"><img src="${WMA[(RMODE===m&&WMA[k+'p'])?k+'p':k][0]}" alt=""></button>`;
   const rows=(kan?`<div class=wr><label>学年</label>${sel('学年',gopt,'setGrade')}<img class=wban src="${WMA.banner[0]}" alt=""></div><div class=wr><label>読み方</label><div class=wrm>${rm('on','on','音読み')}${rm('kun','kun','訓読み')}${rm('mix','mix','まぜる')}</div></div>`:'')
    +`<div class=wr><label>${PLAY==='flash'?'見せる時間':'動く速さ'}</label>${sel('時間',sopt,'setLspd')}</div><div class=wr><label>問題数</label>${sel('問題数',nopt,'setLn')}</div>`;
-  const w=weakList(),n=Object.keys(MAST).filter(k=>k.startsWith(GAME+':')).length;
+  const w=weakList();
   return`<div class=wmr style="background-image:url(${WMA[wmBgKey()][0]})"><div class=wms>
-   <button class=wmback onclick="HOMEMAP=true;render()">🏠 ホーム</button><button class=wmgear aria-label="設定" onclick="view('gear')"><img src="${HL_BTN.gear[0]}" alt="設定"></button>
-   <img class=wemb src="${WMA.emb[0]}" alt="ことばの冒険">
+   <button class=wmgear aria-label="設定" onclick="view('gear')"><img src="${HL_BTN.gear[0]}" alt="設定"></button>
+   <div class=wml><img class=wemb src="${WMA.emb[0]}" alt="ことばの冒険">
    <div class=wmm>${tb(PLAY==='flash',"setPlay('flash')",'flash','フラッシュカード')}${tb(PLAY==='dyn',"setPlay('dyn')",'dyn','動体視力')}</div>
-   <div class=wmp style="background-image:url(${WMA.panel[0]})"><div class=wt1>${types}</div><div class=wt2>${rows}</div></div>
    <button class=wst aria-label="はじめる" onclick="learnStart()"><img src="${WMA.start[0]}" alt="はじめる"></button>
-   <div class=wrec>おぼえた ${n}こ ★スタンプ ${STAMP}こ${w.length?` <button class="b sm" onclick="learnStart(true)">にがてチャレンジ(${Math.min(LN,w.length)}もん)</button>`:''}</div>
+   ${w.length?`<div class=wrec><button class="b sm" onclick="learnStart(true)">にがてチャレンジ(${Math.min(LN,w.length)}もん)</button></div>`:''}</div>
+   <div class=wmp style="background-image:url(${WMA.panel[0]})"><div class=wt1>${types}</div><div class=wt2>${rows}</div></div>
   </div></div>${V?modal():INTRO?introHTML():''}`}
 function learnMenuHTML(){
   if(SEC==='word'&&GAME!=='element')return wordMenuHTML();
@@ -4801,7 +4809,7 @@ function fgearModal(){const I=k=>`<img src="${FGA[k][0]}" alt="">`,b=(f,k,l)=>`<
   <button class=fgc aria-label="つづける" onclick="view(null)">${I('go')}</button></div></div>`}
 function gearModal(){const gb=(f,l)=>`<button class="b" style="display:block;width:100%;margin:6px 0;text-align:left" onclick="${f}">${l}</button>`;
   return`<div class=ov><div class=md style="max-width:360px"><h3 style="margin:0 0 6px;text-align:center">⚙ 設定</h3>
-  ${gb("view('rules')",'📖 ルール・リスト')}${gb("view('zukan')",`📚 図鑑 ${Object.keys(Z).length}/${C.zTotal||Object.keys(C.compounds).length}`)}${gb('toggleMute()',`🔊 音 ${mute?'OFF':'ON'}`)}${true?gb('toggleBgm()',`🎵 BGM ${BGERR?'ファイルなし':bgmOn?'ON':'OFF'}`):''}${gb("view(null);ptStart()",'🐾 相棒を えらびなおす')}${gb("view(null);INTRO=false;opStart(true)",'🎬 オープニングを みる')}${gb('toggleKid()',`🔤 ひょうじ:${KID?'ひらがな':'かんじ'}(おして きりかえ)`)}${gb("view('reward')",'🎁 ごほうび')}${gb("view('parent')",'🔒 おうちの方へ(ごほうび設定)')}
+  ${HOMEMAP?'':gb("view(null);HOMEMAP=true;render()",'🏠 ホームに もどる')}${gb("view('rules')",'📖 ルール・リスト')}${gb("view('zukan')",`📚 図鑑 ${Object.keys(Z).length}/${C.zTotal||Object.keys(C.compounds).length}`)}${gb('toggleMute()',`🔊 音 ${mute?'OFF':'ON'}`)}${true?gb('toggleBgm()',`🎵 BGM ${BGERR?'ファイルなし':bgmOn?'ON':'OFF'}`):''}${gb("view(null);ptStart()",'🐾 相棒を えらびなおす')}${gb("view(null);INTRO=false;opStart(true)",'🎬 オープニングを みる')}${gb('toggleKid()',`🔤 ひょうじ:${KID?'ひらがな':'かんじ'}(おして きりかえ)`)}${gb("view('reward')",'🎁 ごほうび')}${gb("view('parent')",'🔒 おうちの方へ(ごほうび設定)')}
   <div style="text-align:center;margin-top:8px"><button class="b g" onclick="view(null)">閉じる</button></div></div></div>`}
 function homeStatus(){const lv=treeLv(W.tree),nx=TREE_XP[lv],pc=nx?Math.max(0,Math.min(100,Math.round((W.tree-TREE_XP[lv-1])/(nx-TREE_XP[lv-1])*100))):100;
   return`<div class=hsb><span>🌱 Lv${lv}</span><div class=sbar title="${nx?(W.tree>=nx?'学年が すすむと レベルアップ!':`あと ${nx-W.tree}で つぎのレベル`):'さいだい'}"><i style="width:${pc}%"></i></div><span>⭐ <b>${W.lp}</b></span></div>`}
