@@ -197,11 +197,10 @@ td,th{border-bottom:1px solid #223052;padding:4px}
 @media (min-aspect-ratio:16/9){
   .fcbg{display:none}
   .fcl,.fcr{display:block;position:fixed;top:0;height:100dvh;background-image:var(--fcbg)}
-  .fcl{left:0;width:calc(50vw - 50.56dvh);background-size:463.9% 100%;background-position:0 0}
-  .fcr{right:0;width:calc(50vw - 49.5dvh);background-size:451.4% 100%;background-position:100% 0}
-  .fcimg{clip-path:inset(0 22.16% 0 21.56%)}
-  .fcq{display:none}
-  .fcq2{position:absolute;left:1.4%;top:8%;width:77%;height:5%;display:flex;align-items:center;justify-content:center;gap:.8vh;color:#fff6d8;font-size:3vh;white-space:nowrap}.fcq2 b{font-size:3.2vh}
+  .fcl{left:0;width:calc(50vw - 88.9dvh + 1px);background-size:auto 100%;background-position:left top;background-repeat:no-repeat;transform:scaleX(-1)}
+  .fcr{right:0;width:calc(50vw - 88.9dvh + 1px);background-size:auto 100%;background-position:left top;background-repeat:no-repeat;transform:scaleX(-1);background-position:right top}
+  .fcimg{clip-path:none}
+  .fcq2{display:none}
 }
 @media not all and (min-aspect-ratio:16/9){.fcq2{display:none}}
 
@@ -237,9 +236,9 @@ td,th{border-bottom:1px solid #223052;padding:4px}
  .wml .wemb{width:100%;padding:0}.wml .wmm{flex-direction:column;gap:1.4cqw;margin:0}.wml .wmm .wmb{width:100%}.wml .wst{width:100%;margin:.6cqw 0 0}.wml .wrec{margin:0}
  .wmp{width:70cqw;margin:0;flex:none}
 }
-.fcroot .fcimg,.fcroot .fcl,.fcroot .fcr{filter:var(--fcf,none)}
-.fcm .fcgear{left:auto;right:1.2%}.fcm .fcq{left:2.4%;width:17.2%}
-@media (min-aspect-ratio:16/9){.fcm .fcl .fcq2{left:11.1%;width:79.8%}}
+.fcroot .fcimg{filter:var(--fcf,none)}.fcroot .fcl,.fcroot .fcr{filter:blur(9px) brightness(.8)}
+.fcm .fcgear{left:auto;right:1.2%}.fcm .fcq{left:9.3%;width:16.9%}
+
 #op .pg .fr img{object-fit:contain!important;object-position:50% 50%!important;top:0!important;height:100%!important}
 #op .pg.opa .fr img{animation:opkz var(--d) linear forwards!important}
 @keyframes opkz{from{transform:scale(1)}to{transform:scale(1.04)}}
@@ -4172,7 +4171,7 @@ function fcHTML(L,q,show,fb,nm){
   const btns=q.ch.map((c,k)=>{const st=fb?(c===q.ans?' ok':k===L.pick?' ng':' g'):'',[x,y,w,h]=FC_CH[k],fs=Math.min(5.4,16.5/Math.max(1,[...String(c).replace(/<[^>]*>/g,'')].length));
     return`<button class="fcb${q.nt}${st}" ${fb?'disabled':''} onclick=learnAnswer(${k}) style="left:${x}%;top:${y}%;width:${w}%;height:${h}%;font-size:${fs}cqw">${c}</button>`}).join('');
   const tk=wmBgKey(),mor=true,BG=FC4[tk],tf='none',q2=`<div class=fcq2><b>${L.i+1}/${L.n}</b><span>${L.queue?'にがて ':''}せいかい ${L.ok}</span></div>`;
-  return`<div class="fcroot${mor?' fcm':''}" style="--fcbg:url(${BG});--fcf:${tf}"><div class=fcbg></div><div class=fcl>${mor?q2:''}</div><div class=fcr>${mor?'':q2}</div><div class=fcw><img class=fcimg src="${BG}" alt="">
+  return`<div class="fcroot${mor?' fcm':''}" style="--fcbg:url(${BG});--fcf:${tf}"><div class=fcbg></div><div class=fcl></div><div class=fcr></div><div class=fcw><img class=fcimg src="${BG}" alt="">
   <div class=fcq><b>${L.i+1}/${L.n}</b><span>${L.queue?'にがて ':''}せいかい ${L.ok}</span></div>
   <div id=lst class="lst fcard">${stage}${show?`<div class=lhint>${q.ask}</div>`:''}${fb&&q.ch[L.pick]!==q.ans?`<button class="b fcnext" onclick=learnNext()>つぎへ</button>`:''}</div>
   <div class=fcch style="visibility:${show?'hidden':'visible'}">${btns}</div>
