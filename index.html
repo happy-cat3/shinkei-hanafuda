@@ -539,7 +539,7 @@ const addDelta=(i,k,n)=>{i.delta=i.delta||{};i.delta[k]=(i.delta[k]||0)+n};
 function build(){
   return run((s,i)=>{if(s.build.workshop){i.reason='built';return false}
     if(!spendS(s,WS_COST,i))return false;
-    s.build.workshop=true;s.tut.ach.build=true});
+    s.build.workshop=true;s.tut.ach.build=true;tutFin(s)});
 }
 // 3a-2 板材の加工:木材2→板材1・60秒・同時に1件・取り消しなし。完成は時刻で判定(保存するのは idle と run だけ)
 function startPlank(){
@@ -554,7 +554,7 @@ function collectPlank(){
     if(s.work.state!=='run'){i.reason='nowork';return false}
     const rem=Math.min(s.work.end-VIL.now(),WCD);if(rem>0){i.reason='notready';i.remain=rem;return false}
     i.delta={plank:1};Object.assign(i,putS(s,'plank',1,'work'));
-    s.done.plank++;s.tut.ach.plank=true;s.work={state:'idle',item:null,end:0}});
+    s.done.plank++;s.tut.ach.plank=true;tutFin(s);s.work={state:'idle',item:null,end:0}});
 }
 function workInfo(){const s=VIL.get();if(!s)return null;const w=s.work;
   if(w.state!=='run')return{built:s.build.workshop,state:'idle',remain:0};
@@ -586,7 +586,7 @@ function claimQuest(id){
     for(const k in d.reward){addDelta(i,k,d.reward[k]);const r=putS(s,k,d.reward[k],'reward');i.stored+=r.stored;i.pended+=r.pended}
     if(d.cat==='normal'){const r=s.quest.repeat;r.n++;const ow=repeatOwed(r.n,r.paid);
       if(ow>0){r.paid+=ow;addDelta(i,'crystal',ow);const x=putS(s,'crystal',ow,'reward');i.stored+=x.stored;i.pended+=x.pended;i.bonus=ow}}
-    if(id==='first')s.tut.ach.quest=true});
+    if(id==='first'){s.tut.ach.quest=true;tutFin(s)}});
 }
 
 // 3c 学習依頼の判定:既存の MAST を「読むだけ」。習得した数は保存しない(判定のたびに数える)。依頼の公開と報酬は、正式決定まで なし
@@ -600,6 +600,73 @@ const learn={
 };
 const act2={build,startPlank,collectPlank,workInfo,board,claimQuest,repeatOwed,learn,DEFS,WS_COST,PLANK_COST};
 Object.assign(act,act2);
+
+// ===== 第4段階:保管庫の拡張(4→5枠)・チュートリアル5段階の進行管理(動きだけ。画面からは まだ呼ばない) =====
+// 5→6枠(木材6・石材4・結晶1)、6→7枠(板材2・石材6・結晶2)、7→8枠(板材4・石材8・結晶2)は決定済みだが、今回は実装しない(後の段階)
+const EXP_COST={wood:4,stone:2,crystal:1},TORDER=['arrive','quest','build','plank','expand'];
+function tutFin(s){if(TORDER.every(k=>s.tut.ach[k]))s.tut.done=true} // 5つそろった保存の中で、完了にする
+// 4a 保管庫の拡張(4→5枠):保管庫の資材だけを使う。受け取り待ちは数えない。実績(tut.ach.expand)は消費後も残る
+function expandStorage(){
+  return run((s,i)=>{if(s.store.slots!==4){i.reason='later';return false} // 5枠より先は、後の段階
+    if(!spendS(s,EXP_COST,i))return false;
+    s.store.slots=5;s.tut.ach.expand=true;tutFin(s)});
+}
+// 段階1「到着」:依頼掲示板を初めて開いたときに達成。2回目からは、何も書かない
+function openBoard(){
+  const s=VIL.get();if(!s)return{ok:false,reason:'locked'};
+  if(s.tut.ach.arrive)return{ok:true,already:true};
+  return run((x,i)=>{if(x.tut.ach.arrive){i.already=true;return}x.tut.ach.arrive=true;tutFin(x)});
+}
+// 旗が5つそろっているのに完了になっていない保存データへの補助(何度呼んでも同じ。変わらないときは書かない)
+function syncTutorial(){
+  const s=VIL.get();if(!s)return{ok:false,reason:'locked'};
+  if(s.tut.done||!TORDER.every(k=>s.tut.ach[k]))return{ok:true,noop:true};
+  return run(x=>{tutFin(x)});
+}
+// 説明の再確認(見るだけ):達成の旗と完了は、変えない。完了後だけ使える
+function setReplay(on){
+  return run((s,i)=>{if(!s.tut.done){i.reason='notdone';return false}s.tut.replay=!!on});
+}
+const gpts=it=>Object.keys(POINTS).filter(k=>POINTS[k]===it);
+// 必要な資材(cost)が保管庫に足りないとき、何をすればよいか。受け取り待ちにあれば「移す」(空きがなければ入れかえ)、なければ「採集」
+function needHint(s,cost){
+  const miss={};for(const k in cost){const d=cost[k]-s.store.items[k];if(d>0)miss[k]=d}
+  if(!Object.keys(miss).length)return null;
+  const pend=[];
+  for(const k in miss){const e=s.pend.find(p=>p.item===k);if(!e)continue;
+    const ad=addable(s,k).total,n=Math.min(miss[k],e.n);
+    if(ad>0)pend.push({item:k,missing:miss[k],entryId:e.id,n:Math.min(n,ad),direct:true});
+    else{ // 入れかえ:出してよいのは、いまの段階で使わない分(余り)から。余りで足りない選択肢は、あとまわし
+      const opts=planS(s,e,n).map(o=>Object.assign(o,{spare:s.store.items[o.item]-(cost[o.item]||0)}));
+      const best=opts.filter(o=>o.minOut<=o.spare).sort((a,b)=>a.minOut-b.minOut)[0]||opts.sort((a,b)=>a.minOut-b.minOut)[0]||null;
+      pend.push({item:k,missing:miss[k],entryId:e.id,n,direct:false,swap:best&&{item:best.item,minOut:best.minOut}})}}
+  if(pend.length)return{type:'pending',target:'pending',items:pend,missing:miss};
+  const now=VIL.now(),items=Object.keys(miss).filter(k=>k==='wood'||k==='stone');
+  if(!items.length)return{type:'blocked',target:null,missing:miss}; // 結晶など、採集できないものが、どこにもない
+  const pts=items.flatMap(k=>gpts(k).map(id=>({id,item:k,remain:Math.max(0,Math.min(s.gather[id].at-now,GCD))})));
+  return{type:'gather',target:items[0],items,missing:miss,points:pts,nextIn:Math.min(...pts.map(x=>x.remain))};
+}
+function hintFor(s,key){
+  if(key==='arrive')return{type:'board',target:'board'};
+  if(key==='quest'){const p=DEFS.first.prog(s);
+    if(p<DEFS.first.goal)return{type:'gather',target:'wood',items:['wood'],p,goal:DEFS.first.goal,points:gpts('wood').map(id=>({id,item:'wood',remain:Math.max(0,Math.min(s.gather[id].at-VIL.now(),GCD))})),nextIn:Math.min(...gpts('wood').map(id=>Math.max(0,Math.min(s.gather[id].at-VIL.now(),GCD))))};
+    return{type:'claim',target:'board',id:'first'}}
+  if(key==='build')return needHint(s,WS_COST)||{type:'build',target:'workshop'};
+  if(key==='plank'){
+    if(!s.build.workshop)return needHint(s,WS_COST)||{type:'build',target:'workshop'};
+    if(s.work.state==='run'){const rem=Math.max(0,Math.min(s.work.end-VIL.now(),WCD));return rem>0?{type:'wait',target:'workshop',remain:rem}:{type:'collect',target:'workshop'}}
+    return needHint(s,PLANK_COST)||{type:'start',target:'workshop'}}
+  return needHint(s,EXP_COST)||{type:'expand',target:'storage'}; // expand
+}
+// 現在の段階:達成の旗から、毎回 計算する(保存しない)。最初の未達成が、現在の段階
+function tutorial(){
+  const s=VIL.get();if(!s)return null;const ach=s.tut.ach,t=s.tut;
+  const all=TORDER.every(k=>ach[k]);
+  if(t.done||all)return{done:true,mode:t.replay?'replay':'done',step:0,ach,needSync:!t.done,steps:TORDER.slice()};
+  const key=TORDER.find(k=>!ach[k]);
+  return{done:false,mode:'play',step:TORDER.indexOf(key)+1,key,ach,hint:hintFor(s,key)};
+}
+Object.assign(act,{expandStorage,openBoard,syncTutorial,setReplay,tutorial,EXP_COST,TORDER});
 
 window.VIL={KEY,BK,VER,ITEMS,PER,SLOT0,GCD,WCD,now:()=>Date.now(),act,fresh,validate,encode,decode,clampTimes,
   init:load,load,commit,reverify,rescue,
