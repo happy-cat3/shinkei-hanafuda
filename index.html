@@ -307,7 +307,7 @@ const LUNA_IMG='data:image/webp;base64,UklGRpCiAABXRUJQVlA4WAoAAAAQAAAAHgEAowEAQ
 // W には つなげない(W は elemWorld として まるごと保存されるため、町のデータが混ざってしまう)。かわりに window.VIL から使う。
 (function(){
 'use strict';
-const KEY='elemVil',BK='elemVilBk',BADP='elemVilBad_',VER=1;
+let KEY='elemVil',BK='elemVilBk',BADP='elemVilBad_';const VER=1;
 const ITEMS=['wood','stone','plank','crystal'],PER=10,SLOT0=4;
 const GP=['wood1','wood2','stone1','stone2'],TUT=['arrive','quest','build','plank','expand'];
 const FROM=['gather','work','reward','store'],WST=['idle','run','done'];
@@ -380,6 +380,7 @@ function keepBad(raw,tag){ // こわれた文字列を、消さずに べつの�
 function writeMain(raw){try{ls().setItem(KEY,raw);return ls().getItem(KEY)===raw}catch(e){return false}}
 
 function load(){
+  nsLocked=true; // 一度でも読み込んだら、保存先の名前は変えられない
   S=null;lastRaw=null;unsure=null;persisted=true;
   let m,b;
   try{m=ls().getItem(KEY);b=ls().getItem(BK)}catch(e){S=fresh();persisted=false;return setSt('nostorage')}
@@ -443,6 +444,24 @@ function commit(fn){
   }finally{busy=false}
 }
 
+
+// ===== 保存先の切り替え(テスト入口用)。初期化の前に1回だけ呼べる。通常は呼ばない=本番の名前(elemVil)のまま =====
+// テスト用は elemVilTest / elemVilTestBk / elemVilTestBad_*。本番の elemVil・elemVilBk・elemVilBad_* とは、名前が重ならない
+let ns='',nsLocked=false;
+function setNamespace(name){
+  if(nsLocked||ns!==''||name!=='Test')return false; // 使える名前は Test だけ。一度でも初期化・切り替えをしたら、変えられない
+  ns=name;KEY='elemVilTest';BK='elemVilTestBk';BADP='elemVilTestBad_';nsLocked=true;return true;
+}
+// テスト用データだけを消す。対象は elemVilTest と、そのバックアップ・復旧用(elemVilTestBk・elemVilTestBad_*)だけ。本番の名前では動かない
+const TEST_KEY_RE=/^(elemVilTest|elemVilTestBk|elemVilTestBad_.*)$/;
+function testKeys(){if(ns!=='Test')return[];let ks=[];try{ks=Object.keys(ls()).filter(k=>TEST_KEY_RE.test(k))}catch(e){}return ks.sort()}
+function eraseTestData(token){
+  if(ns!=='Test'||token!=='ERASE_TEST')return{ok:false,reason:'refused'};
+  const ks=testKeys(),gone=[];
+  try{for(const k of ks){if(!TEST_KEY_RE.test(k)||k==='elemVil'||k==='elemVilBk')continue;ls().removeItem(k);gone.push(k)}}catch(e){return{ok:false,reason:'error',removed:gone}}
+  S=null;lastRaw=null;unsure=null;status='none';why='';nsLocked=true;
+  return{ok:true,removed:gone};
+}
 // 保護者向けの復旧用の口(画面は あとの段階で作る)。自動では呼ばれない
 const rescue={
   raws(){const o={};try{o.main=ls().getItem(KEY);o.bk=ls().getItem(BK)}catch(e){}
@@ -668,7 +687,7 @@ function tutorial(){
 }
 Object.assign(act,{expandStorage,openBoard,syncTutorial,setReplay,tutorial,EXP_COST,TORDER});
 
-window.VIL={KEY,BK,VER,ITEMS,PER,SLOT0,GCD,WCD,now:()=>Date.now(),act,fresh,validate,encode,decode,clampTimes,
+window.VIL={get KEY(){return KEY},get BK(){return BK},VER,ITEMS,PER,SLOT0,GCD,WCD,now:()=>Date.now(),act,setNamespace,namespace:()=>ns,testKeys,eraseTestData,fresh,validate,encode,decode,clampTimes,
   init:load,load,commit,reverify,rescue,
   get:()=>S?clone(S):null,
   status:()=>({status,why,persisted,unsure:!!unsure,locked:status==='locked'})};
@@ -5329,4 +5348,159 @@ function rotCheck(){let e=document.getElementById('rot');const need=!ROT_OFF&&in
   if(!need){if(e)e.remove();return}
   if(!e){e=document.createElement('div');e.id='rot';e.innerHTML='<div style="font-size:64px;animation:rotw 2s infinite">📱</div><b style="font-size:20px">スマホを 横むきに してね</b><span style="font-size:14px;opacity:.8">横むきの ほうが ゲームが 大きく 見えるよ</span><button class=b onclick="ROT_OFF=true;rotCheck()">このまま あそぶ</button>';document.body.appendChild(e)}}
 addEventListener('resize',rotCheck);addEventListener('orientationchange',rotCheck);setTimeout(rotCheck,300);
+</script>
+<script id="vil-ui">
+(function(){
+'use strict';
+// ===== 町づくり 5a:画面の土台(レイヤー・風景の配置・上のバー・テスト入口)。採集などの操作は、まだつなげない =====
+// 入口は URL の末尾 #vil だけ(テスト入口)。保存先は elemVilTest。本番の elemVil と学習データは、読まず・書かない。
+const FR=2.1327; // 風景の枠の縦横比(横/縦)
+const U={open:false,mode:'none',dbg:false,tp:0,small:false,msg:'',taps:{},root:null};
+const VILA={bg:null,obj:{}}; // 正式素材の入れ口。null なら仮の絵。素材を入れても、位置とタップの範囲は変わらない
+
+// --- 漢字・ひらがな(町づくり専用の変換表。ひらがな表示のとき、ここの言葉をかなにする) ---
+const VT=[['テスト中','てすとちゅう'],['特別な結晶','とくべつなけっしょう'],['受け取り待ち','うけとりまち'],['依頼掲示板','いらいけいじばん'],['小さな作業場','ちいさなさぎょうば'],['はじまりの町','はじまりのまち'],
+ ['作業場','さぎょうば'],['掲示板','けいじばん'],['保管庫','ほかんこ'],['木材','もくざい'],['石材','せきざい'],['板材','いたざい'],['結晶','けっしょう'],['空き地','あきち'],
+ ['ルナ先生','ルナせんせい'],['案内','あんない'],['出る','でる'],['目標','もくひょう'],['戻る','もどる'],['設定','せってい'],['小さく','ちいさく'],['大きく','おおきく'],['準備中','じゅんびちゅう']]
+ .sort((a,b)=>b[0].length-a[0].length);
+const vk=t=>{if(typeof KID==='undefined'||!KID)return t;for(const[a,b]of VT)if(t.includes(a))t=t.split(a).join(b);return t};
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// --- 風景のオブジェクトの表(中心と大きさは、風景の枠に対する%)。cx,cy=中心 aw,ah=絵の枠 hw,hh=タップできる範囲 ---
+const OBJ=[
+ {id:'wood1',kind:'tree', name:'木材',cx:15.5,cy:33,aw:10,ah:30,hw:12,hh:29},
+ {id:'stone1',kind:'rock',name:'石材',cx:14,cy:64,aw:8,ah:12,hw:10,hh:17},
+ {id:'board',kind:'board',name:'依頼掲示板',cx:36,cy:34,aw:9,ah:24,hw:13,hh:22,cap:true},
+ {id:'workshop',kind:'lot',name:'小さな作業場',cx:51,cy:60,aw:13,ah:26,hw:17,hh:30,cap:true},
+ {id:'wood2',kind:'tree', name:'木材',cx:66,cy:33,aw:11,ah:32,hw:12,hh:28},
+ {id:'storage',kind:'chest',name:'保管庫',cx:80,cy:58,aw:11,ah:22,hw:13,hh:24,cap:true},
+ {id:'stone2',kind:'rock',name:'石材',cx:84,cy:30,aw:8,ah:12,hw:10,hh:17}];
+
+// --- 仮の絵(図形)。viewBox の縦横比のまま枠に はめる(引きのばさない) ---
+const ART={
+ tree:`<svg viewBox="0 0 100 140" preserveAspectRatio="xMidYMid meet"><rect x="44" y="88" width="12" height="52" fill="#7a5230"/><circle cx="50" cy="52" r="38" fill="#3f8f4a"/><circle cx="28" cy="70" r="22" fill="#4a9c55"/><circle cx="74" cy="68" r="24" fill="#357f40"/><circle cx="40" cy="44" r="3" fill="#ffe27a"/><circle cx="64" cy="56" r="2.5" fill="#ffe27a"/><circle cx="52" cy="30" r="2" fill="#fff6a8"/></svg>`,
+ rock:`<svg viewBox="0 0 100 70" preserveAspectRatio="xMidYMid meet"><ellipse cx="50" cy="48" rx="44" ry="20" fill="#9a9a9a"/><ellipse cx="40" cy="40" rx="20" ry="9" fill="#bdbdbd"/><polygon points="68,30 74,8 80,30" fill="#8fe3f0"/><polygon points="78,32 84,16 89,32" fill="#b8f5ff"/></svg>`,
+ board:`<svg viewBox="0 0 100 120" preserveAspectRatio="xMidYMid meet"><rect x="46" y="60" width="8" height="58" fill="#7a5230"/><rect x="8" y="8" width="84" height="56" rx="6" fill="#c79a5a" stroke="#8a6a36" stroke-width="2"/><rect x="18" y="20" width="26" height="14" fill="#f5e6c0"/><rect x="50" y="22" width="30" height="10" fill="#f5e6c0"/><rect x="20" y="40" width="40" height="8" fill="#f5e6c0"/></svg>`,
+ lot:`<svg viewBox="0 0 140 90" preserveAspectRatio="xMidYMid meet"><rect x="6" y="14" width="128" height="68" rx="10" fill="#cdbb8f" stroke="#8a7a52" stroke-width="2" stroke-dasharray="8 6"/><rect x="40" y="30" width="60" height="38" fill="#b89a62" opacity=".6"/></svg>`,
+ chest:`<svg viewBox="0 0 120 110" preserveAspectRatio="xMidYMid meet"><polygon points="6,52 60,8 114,52" fill="#7a4f26"/><rect x="14" y="52" width="92" height="52" fill="#a8743e"/><rect x="48" y="68" width="24" height="36" fill="#6b4420"/><rect x="14" y="52" width="92" height="6" fill="#8a5c2c"/></svg>`};
+const BGSVG=`<svg viewBox="0 0 1000 469" preserveAspectRatio="xMidYMid slice"><rect width="1000" height="469" fill="#cfe6f3"/><rect y="0" width="1000" height="120" fill="#bfe0f0"/>
+<ellipse cx="555" cy="112" rx="62" ry="12" fill="#a79d7c"/><ellipse cx="555" cy="104" rx="60" ry="9" fill="#7fb56f"/><circle cx="545" cy="90" r="11" fill="#3f8f4a"/><rect x="541" y="94" width="8" height="12" fill="#7a5230"/><path d="M535 120 L535 168" stroke="#9fdcf0" stroke-width="3" opacity=".7"/>
+<polygon points="0,250 130,150 260,250" fill="#b9b3d9"/><polygon points="200,250 380,128 560,250" fill="#aaa3cf"/><polygon points="640,250 830,140 1000,250" fill="#b4aed6"/><polygon points="372,132 380,108 390,134" fill="#8fe3f0"/><polygon points="822,144 830,120 840,146" fill="#8fe3f0"/>
+<ellipse cx="300" cy="270" rx="330" ry="80" fill="#7fb56f"/><ellipse cx="780" cy="268" rx="360" ry="72" fill="#79ae69"/><rect y="262" width="1000" height="207" fill="#8fc57f"/>
+<path d="M0 250 C90 285 150 335 235 469" fill="none" stroke="#8fd0e8" stroke-width="22" stroke-linecap="round"/><path d="M0 250 C90 285 150 335 235 469" fill="none" stroke="#c6efff" stroke-width="5" stroke-linecap="round" opacity=".7"/>
+<path d="M360 469 C420 405 480 345 515 322 C600 286 720 298 880 270" fill="none" stroke="#e2cf9e" stroke-width="30" stroke-linecap="round"/>
+<g fill="#2f6c38"><circle cx="70" cy="196" r="22"/><circle cx="290" cy="212" r="18"/><circle cx="560" cy="182" r="16"/><circle cx="930" cy="236" r="22"/><circle cx="905" cy="420" r="20"/><circle cx="640" cy="440" r="17"/></g>
+<g fill="#7a5230"><rect x="67" y="206" width="6" height="14"/><rect x="287" y="222" width="6" height="12"/><rect x="927" y="246" width="6" height="14"/></g>
+<g><circle cx="380" cy="400" r="4" fill="#ffd1e6"/><circle cx="398" cy="410" r="4" fill="#fff6a8"/><circle cx="640" cy="390" r="4" fill="#ffd1e6"/><circle cx="662" cy="402" r="4" fill="#fff6a8"/><circle cx="700" cy="420" r="4" fill="#ffd1e6"/></g>
+<g class="orb"><circle cx="120" cy="380" r="6" fill="#b8f5ff"/><circle cx="880" cy="350" r="6" fill="#b8f5ff"/><circle cx="520" cy="430" r="5" fill="#ffe9a8"/><circle cx="260" cy="150" r="5" fill="#ffe9a8"/></g></svg>`;
+
+const CSS=`
+.vlw{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(#bfe0f0 0,#cfe6f3 42%,#8fc57f 42%,#7fb56f 100%);-webkit-user-select:none;user-select:none;touch-action:manipulation;line-height:1.25;color:#fff}
+.vlw.hasbg::before{content:"";position:absolute;inset:-6%;background:var(--vbg) center/cover;filter:blur(18px)}
+.vls{position:relative;width:min(100vw,calc(100dvh*2.4));height:min(100dvh,calc(100vw*9/16));container-type:size;overflow:hidden;flex:none}
+.vlf{position:absolute;left:50%;top:50%;width:max(100cqw,calc(100cqh*${FR}));height:max(100cqh,calc(100cqw/${FR}));transform:translate(-50%,-50%)}
+.vlbg{position:absolute;inset:0}.vlbg svg,.vlbg img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:cover}
+.vlo{position:absolute;transform:translate(-50%,-50%);pointer-events:none}.vlo svg,.vlo img{width:100%;height:100%;display:block;object-fit:contain}
+.vlcap{position:absolute;transform:translate(-50%,0);font-size:clamp(11px,2.9cqh,17px);white-space:nowrap;color:#fff;text-shadow:0 1px 3px #000,0 0 6px #0008;pointer-events:none;font-weight:700}
+.vlh{position:absolute;transform:translate(-50%,-50%);min-width:40px;min-height:40px;background:transparent;border:0;padding:0;margin:0;cursor:pointer;-webkit-tap-highlight-color:transparent;border-radius:10px}
+.vlw.dbg .vlh{outline:2px dashed #1d6fd6;background:rgba(29,111,214,.14)}
+.vlbar{position:absolute;left:0;right:0;top:0;height:max(40px,9cqh);display:flex;align-items:center;gap:max(4px,.8cqh);padding:0 max(6px,env(safe-area-inset-right)) 0 max(6px,env(safe-area-inset-left));background:rgba(30,48,34,.74);font-size:clamp(12px,3.4cqh,22px);box-sizing:border-box}
+.vlb{min-height:40px;min-width:44px;padding:0 10px;border-radius:8px;border:1px solid rgba(255,255,255,.45);background:rgba(255,255,255,.16);color:#fff;font:inherit;font-weight:700;cursor:pointer;white-space:nowrap}
+.vlt{flex:1;text-align:center;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.vlres{display:flex;gap:max(4px,1cqh);align-items:center}.vlc{display:inline-flex;align-items:center;white-space:nowrap}
+.vlc i{width:1.05em;height:1.05em;border-radius:3px;margin-right:3px;display:inline-block}
+.vlc .w{background:#a0693a}.vlc .s{background:#9a9a9a}.vlc .p{background:#e0c080}.vlc .c{background:#8fe3f0;transform:rotate(45deg) scale(.8)}
+.vlpd{min-height:40px;min-width:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:20px;background:#e24b4a;color:#fff;font-weight:700;padding:0 10px}
+.vlgd{position:absolute;left:2%;right:2%;bottom:max(4px,1.5cqh);height:max(56px,15cqh);display:flex;align-items:center;gap:max(6px,1.2cqh);padding:4px 8px;box-sizing:border-box;background:rgba(255,255,255,.94);border-radius:10px;color:#2c2c2a;font-size:clamp(12px,3.6cqh,20px)}
+.vlav{flex:none;height:calc(100% - 4px);aspect-ratio:1;border-radius:50%;overflow:hidden;background:#b9a6e8}.vlav img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;display:block}
+.vlbub{flex:1;min-width:0}.vlbub .m{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vlbub .g{color:#5f5e5a;font-size:max(11.5px,.88em);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vlgd .vlb{color:#2c2c2a;background:#eee;border-color:#bbb}
+.vlgd.sm{right:auto;max-width:62%}.vlgd.sm .m{display:none}
+.vlmd{position:absolute;inset:0;pointer-events:none}.vlmd .ov{pointer-events:auto}
+.vltp{position:absolute;inset:0;background:#050914cc;display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box}
+.vltp>div{background:#0c1426;border:2px solid #2a3c6b;border-radius:10px;padding:12px;max-width:min(94%,560px);max-height:92%;overflow:auto;color:#e8ecf4;font-size:clamp(12px,3.4cqh,16px);line-height:1.5}
+.vltp h3{margin:0 0 6px;font-size:1.1em}.vltp p{margin:4px 0}.vltp code{background:#1b2a4d;padding:1px 5px;border-radius:4px;color:#ffeb3b}.vltp ul{margin:4px 0;padding-left:1.2em}
+.vltp .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.vltp button{min-height:40px;padding:0 12px;border-radius:8px;border:1px solid #6b7fb5;background:#1b2a4d;color:#fff;font:inherit;cursor:pointer}.vltp button.dg{background:#8a1f1f;border-color:#e24b4a}
+.orb circle{animation:vlorb 3.2s ease-in-out infinite}
+@keyframes vlorb{0%,100%{opacity:.45}50%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.orb circle{animation:none;opacity:.8}}
+`;
+
+function resChips(s){const v=k=>s?s.store.items[k]:'-';
+ return[['w','木材','wood'],['s','石材','stone'],['p','板材','plank'],['c','結晶','crystal']].map(([c,l,k])=>`<span class="vlc" role="img" aria-label="${esc(vk(l))} ${v(k)}" title="${esc(vk(l))}"><i class="${c}"></i>${v(k)}</span>`).join('')}
+function objHTML(){
+ let art='',hit='',cap='';
+ for(const o of OBJ){const a=VILA.obj[o.id];
+  const inner=a?`<img src="${esc(a)}" alt="">`:ART[o.kind];
+  art+=`<div class="vlo" data-o="${o.id}" style="left:${o.cx}%;top:${o.cy}%;width:${o.aw}%;height:${o.ah}%">${inner}</div>`;
+  if(o.cap&&!a)cap+=`<div class="vlcap" style="left:${o.cx}%;top:${o.cy+o.ah/2}%">${esc(vk(o.name))}</div>`;
+  hit+=`<button class="vlh" data-h="${o.id}" aria-label="${esc(vk(o.name))}" style="left:${o.cx}%;top:${o.cy}%;width:${o.hw}%;height:${o.hh}%" onclick="VILUI.tap('${o.id}')"></button>`}
+ return`<div class="vlob">${art}</div><div class="vlcp">${cap}</div><div class="vlhit">${hit}</div>`}
+function tpHTML(){
+ if(!U.tp)return'';
+ const ks=VIL.testKeys();let b='';
+ if(U.tp===1)b=`<h3>テストの どうぐ</h3><p>いまは、テストの ほぞんさきを つかっています。ここで あそんでも、ほんばんの まちの データと、がくしゅうの きろくは、かわりません。</p><p>ほぞんさき: <code>${esc(VIL.KEY)}</code></p>${U.msg?`<p style="color:#9be58b">${esc(U.msg)}</p>`:''}<div class="row"><button onclick="VILUI.dbgT()">${U.dbg?'ふちを かくす':'ふちを みせる'}</button><button onclick="VILUI.tp(2)">テストデータを けす…</button><button onclick="VILUI.tp(0)">とじる</button></div>`;
+ else if(U.tp===2)b=`<h3>テストデータを けしますか?(1/2)</h3><p>けすのは、つぎの<b>テスト</b>のデータだけです。</p><ul><li><code>elemVilTest</code>(テストの まち)</li><li><code>elemVilTestBk</code>(テストの バックアップ)</li><li><code>elemVilTestBad_…</code>(テストの ふくきゅうの)</li></ul><p>いま ある テストの: ${ks.length?ks.map(k=>`<code>${esc(k)}</code>`).join(' '):'なし'}</p><p><b>けさないもの:</b> ほんばんの まち(<code>elemVil</code>)、がくしゅうの きろく、そのほかの データ ぜんぶ。</p><div class="row"><button onclick="VILUI.tp(1)">やめる</button><button onclick="VILUI.tp(3)">つぎへ</button></div>`;
+ else b=`<h3>ほんとうに けしますか?(2/2)</h3><p>テストの データを けします。もとには もどせません。</p><p>けす: ${ks.length?ks.map(k=>`<code>${esc(k)}</code>`).join(' '):'なし'}</p><div class="row"><button onclick="VILUI.tp(1)">やめる</button><button class="dg" onclick="VILUI.erase()">けす</button></div>`;
+ return`<div class="vltp" onclick="if(event.target===this)VILUI.tp(0)"><div>${b}</div></div>`}
+function modalHTML(){ // 歯車などの既存の窓(V が決める)を、そのまま使う
+ if(typeof V==='undefined'||!V||typeof modal!=='function')return'';
+ let h='';try{h=modal()}catch(e){h=''}return h}
+function draw(){
+ if(!U.root)return;
+ const s=VIL.get(),pend=s?s.pend.reduce((a,p)=>a+p.n,0):0,test=U.mode==='test';
+ const luna=(typeof LUNA_IMGS!=='undefined'&&LUNA_IMGS[0])?`<img src="${LUNA_IMGS[0]}" alt="">`:'';
+ const bg=VILA.bg?`<img src="${esc(VILA.bg)}" alt="">`:BGSVG;
+ U.root.className='vlw'+(U.dbg?' dbg':'')+(VILA.bg?' hasbg':'');
+ U.root.style.setProperty('--vbg',VILA.bg?`url(${VILA.bg})`:'none');
+ U.root.innerHTML=`<div class="vls"><div class="vlf"><div class="vlbg">${bg}</div>${objHTML()}<div class="vlfx"></div></div>
+ <div class="vlbar"><button class="vlb" onclick="VILUI.goHome()">${esc(vk('戻る'))}</button><div class="vlt">${esc(vk('はじまりの町'))}</div><div class="vlres">${resChips(s)}</div>
+ ${pend>0?`<span class="vlpd" role="img" aria-label="${esc(vk('受け取り待ち'))} ${pend}" title="${esc(vk('受け取り待ち'))}">●${pend}</span>`:''}
+ <button class="vlb" onclick="view('gear')">${esc(vk('設定'))}</button>${test?`<button class="vlb" onclick="VILUI.tp(1)">${esc(vk('テスト中'))}</button>`:''}</div>
+ <div class="vlgd${U.small?' sm':''}"><div class="vlav">${luna}</div><div class="vlbub"><div class="m">${esc(vk('ルナ先生の 案内が ここに 出るよ'))}</div><div class="g">${esc(vk('目標: 準備中'))}</div></div><button class="vlb" onclick="VILUI.toggleSmall()">${esc(vk(U.small?'大きく':'小さく'))}</button></div>
+ <div class="vlmd">${modalHTML()}</div>${tpHTML()}</div>`;
+}
+function ensureCss(){if(document.getElementById('vil-css'))return;const st=document.createElement('style');st.id='vil-css';st.textContent=CSS;document.head.appendChild(st)}
+function killOpening(){ // オープニングを、保存(elemOpDone)をせずに止める。テスト入口が、既存のキーを書かないため
+ try{if(typeof OPS!=='undefined'&&OPS){clearTimeout(OPS.tm);if(OPS.el)OPS.el.remove();OPS=null;if(typeof opMusicStop==='function')opMusicStop()}}catch(e){}}
+function openTest(){
+ if(U.open)return true;
+ if(!VIL.setNamespace('Test'))return false; // すでに本番の名前で初期化されていたら、切り替えられない→開かない(本番データを守る)
+ ensureCss();killOpening();
+ VIL.init();U.mode='test';U.open=true;
+ const app=document.getElementById('app');if(app)app.style.display='none';
+ U.root=document.createElement('div');U.root.id='vilroot';document.body.appendChild(U.root);
+ draw();return true}
+function close(){
+ if(!U.open)return;U.open=false;if(U.root){U.root.remove();U.root=null}
+ const app=document.getElementById('app');if(app)app.style.display='';
+ try{V=null;HOMEMAP=true;render()}catch(e){}}
+window.VILUI={
+ get open(){return U.open},get mode(){return U.mode},get dbg(){return U.dbg},get taps(){return U.taps},OBJ,VILA,vk,VT,FR,
+ openTest,draw,
+ goHome:close,
+ tap(id){U.taps[id]=(U.taps[id]||0)+1}, // 5a:タップの確認だけ(ゲームの操作は つなげない)
+ tp(n){U.tp=n;if(n===0)U.msg='';draw()},
+ dbgT(){U.dbg=!U.dbg;draw()},
+ toggleSmall(){U.small=!U.small;draw()},
+ erase(){ // テストのデータだけを消す(対象は VIL.eraseTestData の中で、名前の許可リストと照らされる)
+  const r=VIL.eraseTestData('ERASE_TEST');
+  if(r.ok){VIL.init();U.msg='けしました: '+(r.removed.length?r.removed.join(', '):'(なし)');U.tp=1}else{U.msg='けせませんでした';U.tp=1}
+  draw()},
+ setArt(a){if(a&&'bg' in a)VILA.bg=a.bg;if(a&&a.obj)Object.assign(VILA.obj,a.obj);if(U.open)draw()}
+};
+
+// --- 既存の render() を、町が開いているときだけ町を描くように、後から包む(既存のコードの行は変えない) ---
+const r0=window.render;
+window.render=function(){
+ if(U.open){try{homeBgmSync()}catch(e){}draw();return}
+ return r0.apply(this,arguments)};
+// --- #vil のときだけ、オープニングを出さない ---
+const o0=window.opStart;
+window.opStart=function(){if(location.hash==='#vil'&&U.mode==='test')return;return o0.apply(this,arguments)};
+// --- テスト入口 ---
+function entrance(){if(location.hash==='#vil'&&!U.open)openTest()}
+entrance();
+addEventListener('hashchange',entrance);
+})();
 </script></body></html>
