@@ -5362,7 +5362,15 @@ const VILA={bg:null,obj:{}}; // 正式素材の入れ口。null なら仮の絵�
 
 // --- 漢字・ひらがな(町づくり専用の変換表。ひらがな表示のとき、ここの言葉をかなにする) ---
 const MSG_FAIL='うまく保存できなかったよ。資材は増えていないから、もう一度ためしてね。',MSG_CHK='保存できたか確認しているよ',MSG_OK='保存できていたよ',MSG_STALE='町のデータが新しくなったよ。もう一度ためしてね。',MSG_LOCK='町のデータを確認できなかったよ。',MSG_FULL='保管庫がいっぱい → 受け取り待ち',MSG_FAIL_MV='うまく保存できなかったよ。資材はそのままだよ。もう一度ためしてね。',MSG_FAIL_EXP='うまく保存できなかったよ。資材は使われていないよ。もう一度ためしてね。',MSG_RETRY='状態が かわったよ。もう一度 えらんでね。',MSG_NOOPT='入れかえできる 資材が ないよ。同じ 資材どうしは 入れかえられないよ。個数を 減らすか、資材を 使おう。',MSG_EXPOK='ひろがったよ!';
-const VT=[[MSG_NOOPT,'いれかえできる しざいが ないよ。おなじ しざいどうしは いれかえられないよ。こすうを へらすか、しざいを つかおう。'],[MSG_FAIL_MV,'うまくほぞんできなかったよ。しざいはそのままだよ。もういちどためしてね。'],[MSG_FAIL_EXP,'うまくほぞんできなかったよ。しざいはつかわれていないよ。もういちどためしてね。'],[MSG_RETRY,'じょうたいがかわったよ。もういちどえらんでね。'],
+const MSG_FAIL_Q='うまく保存できなかったよ。ごほうびは 増えていないから、もう一度ためしてね。';
+const VQ=[[MSG_FAIL_Q,'うまくほぞんできなかったよ。ごほうびはふえていないから、もういちどためしてね。'],
+ ['はじめの 5つの 目標を おえると ひらくよ。','はじめの 5つの もくひょうを おえると ひらくよ。'],
+ ['達成! 受け取れるよ','たっせい! うけとれるよ'],['まだ 受け取れないよ','まだ うけとれないよ'],['ごほうびを 受け取る','ごほうびを うけとる'],['ごほうびを 受け取ったよ','ごほうびを うけとったよ'],['受け取り済み','うけとりずみ'],
+ ['保管庫が いっぱいだから、','ほかんこが いっぱいだから、'],['受け取り待ちに 入ったよ。なくならないから あんしん!','うけとりまちに はいったよ。なくならないから あんしん!'],
+ ['木材は 使わないよ。あつめるだけ!','もくざいは つかわないよ。あつめるだけ!'],['やったね! ','やったね! '],['見てみよう','みてみよう'],['特別な結晶','とくべつな けっしょう'],['資材集め','しざいあつめ'],
+ ['この 依頼は 準備中だよ','この いらいは じゅんびちゅうだよ'],['木を タップ','きを タップ'],['入ったよ','はいったよ'],['受け取れる ごほうびが あるよ。','うけとれる ごほうびが あるよ。'],
+ ['依頼掲示板','いらいけいじばん'],['依頼','いらい'],['物語','ものがたり'],['通常','つうじょう'],['学習','がくしゅう'],['ごほうび','ごほうび']];
+const VT=[...VQ,[MSG_NOOPT,'いれかえできる しざいが ないよ。おなじ しざいどうしは いれかえられないよ。こすうを へらすか、しざいを つかおう。'],[MSG_FAIL_MV,'うまくほぞんできなかったよ。しざいはそのままだよ。もういちどためしてね。'],[MSG_FAIL_EXP,'うまくほぞんできなかったよ。しざいはつかわれていないよ。もういちどためしてね。'],[MSG_RETRY,'じょうたいがかわったよ。もういちどえらんでね。'],
  ['入れかえできる しざいが ないよ','いれかえできる しざいが ないよ'],['保管庫と 受け取り待ち','ほかんこと うけとりまち'],['受け取り待ちは ないよ','うけとりまちは ないよ'],['受け取り待ちに ある 材料は まだ 使えないよ。','うけとりまちに ある ざいりょうは まだ つかえないよ。'],['この拡張は まだ 使えないよ','このかくちょうは まだ つかえないよ'],
  ['保管庫を ひろげる(4わく → 5わく)','ほかんこを ひろげる(4わく → 5わく)'],['入れかえに すすむ','いれかえに すすむ'],['いま 保管庫は いっぱい。入れかえが ひつようだよ。','いま ほかんこは いっぱい。いれかえが ひつようだよ。'],['特別な結晶は 依頼の ごほうびで もらえるよ。','とくべつな けっしょうは いらいの ごほうびで もらえるよ。'],
  ['入れかえても あとで もどせるよ','いれかえても あとで もどせるよ'],['入れかえる','いれかえる'],['入れかえよう','いれかえよう'],['入れかえ','いれかえ'],['受け取ったよ','うけとったよ'],['受け取ろう','うけとろう'],['受け取れないよ','うけとれないよ'],['受け取り待ちへ','うけとりまちへ'],['受け取り','うけとり'],['入るよ','はいるよ'],
@@ -5403,6 +5411,21 @@ const BGSVG=`<svg viewBox="0 0 1000 469" preserveAspectRatio="xMidYMid slice"><r
 <g class="orb"><circle cx="120" cy="380" r="6" fill="#b8f5ff"/><circle cx="880" cy="350" r="6" fill="#b8f5ff"/><circle cx="520" cy="430" r="5" fill="#ffe9a8"/><circle cx="260" cy="150" r="5" fill="#ffe9a8"/></g></svg>`;
 
 const CSS=`
+.vbq .bd{grid-template-columns:40% 1fr;gap:6px;padding:4px 8px}
+.vbq .vbqtabs{display:flex;gap:4px;flex:none;margin-bottom:4px}
+.vbq .vbqt{flex:1;min-width:0;min-height:40px;border:2px solid #b8a27a;border-radius:10px;background:#f6f1e3;font:inherit;font-weight:800;font-size:max(11px,.92em);line-height:1.1;position:relative;color:#3a2e1c;cursor:pointer;padding:0 2px}
+.vbq .vbqt.on{background:#fff4d2;border-color:#e2a21b}.vbq .vbqt.lk{color:#777}
+.vbq .vbqt .dot{position:absolute;top:2px;right:3px;width:11px;height:11px;border-radius:50%;background:#e24b4a;border:1px solid #fff}
+.vbq .vbqr{display:flex;align-items:center;gap:6px;width:100%;min-height:44px;border:2px solid #cdb88a;border-radius:10px;background:#fff;padding:2px 8px;flex:none;font:inherit;color:#3a2e1c;text-align:left;cursor:pointer;margin-bottom:5px;box-sizing:border-box}
+.vbq .vbqr.sel{border-color:#f3a712;background:#fff4d2}.vbq .vbqr .t{flex:1;min-width:0;line-height:1.2}.vbq .vbqr small{display:block;color:#7a6a4a;font-size:max(11px,.8em)}
+.vbq .vbqr .mk{font-weight:900;min-width:1.3em;text-align:center}.vbq .vbqr .mk.n{color:#c0392b}.vbq .vbqr .mk.d{color:#2a8a3a}
+.vbq .vbqd{border:2px solid #cdb88a;border-radius:10px;background:#fff;padding:3px 8px;flex:1;min-height:0;display:flex;flex-direction:column;gap:3px;overflow:hidden;line-height:1.25}.vbq .vbqs{flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:2px}
+@media (max-height:340px){.vbq .sm{display:none}}
+.vbq .vbqd h3{margin:0;font-size:1.05em}.vbq .pgb{height:16px;border-radius:8px;background:#eee;border:1px solid #cdb88a;position:relative;overflow:hidden;flex:none}
+.vbq .pgb i{position:absolute;left:0;top:0;bottom:0;background:#7fc06a}.vbq .pgb span{position:absolute;inset:0;text-align:center;font-size:max(11px,.8em);line-height:14px;font-weight:800}
+.vbq .vbqd .go{flex:none;width:100%}.vbq .sm{color:#7a6a4a;font-size:max(11px,.85em)}.vbq .tg{display:inline-block;font-size:max(11px,.75em);background:#e9d8ac;border-radius:6px;padding:0 5px;margin-left:4px}
+.vbq .vbqd .note{flex:none}.vbq .rwd i{display:inline-block;width:1.1em;height:1.1em;border-radius:3px;margin-right:3px;vertical-align:-2px}
+
 .vlw{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;overflow:hidden;background:linear-gradient(#bfe0f0 0,#cfe6f3 42%,#8fc57f 42%,#7fb56f 100%);-webkit-user-select:none;user-select:none;touch-action:manipulation;line-height:1.25;color:#fff}
 .vlw.hasbg::before{content:"";position:absolute;inset:-6%;background:var(--vbg) center/cover;filter:blur(18px)}
 .vls{position:relative;width:min(100vw,calc(100dvh*2.4));height:min(100dvh,calc(100vw*9/16));container-type:size;overflow:hidden;flex:none}
@@ -5547,6 +5570,7 @@ function refreshGather(){ // 光の輪・暗くする・残り秒数・資源の
   if(h){h.setAttribute('aria-label',vk(o.name)+(on?' '+t:''));h.setAttribute('aria-disabled',on?'true':'false')}}
  const stg=U.root.querySelector('.vlo[data-o="storage"]'),pn=s?s.pend.reduce((a,p)=>a+p.n,0):0;
  if(stg){stg.classList.toggle('nt',pn>0);stg.dataset.n=pn}
+ const bdo=U.root.querySelector('.vlo[data-o="board"]');if(bdo){let nq=0;try{const bq=s&&VIL.act.board();if(bq)for(const c of QCATS)nq+=bq[c].items.filter(x=>x.state==='done').length}catch(e){}bdo.classList.toggle('nt',nq>0);bdo.dataset.n=nq}
  updBar(s);updGuide(s)}
 function showToast(){
  if(!U.root)return;let el=U.root.querySelector('.vlmsg');const t=U.toast,pnl=U.root.querySelector('.vlpn');
@@ -5585,8 +5609,8 @@ function checkStep(){ // 保存できたか分からないとき:状態の確認
  const c=U.chk;if(!c)return;c.tries++;let r='unknown';try{r=VIL.reverify()}catch(e){}
  if(r==='unknown'){U.ctm=setTimeout(checkStep,Math.min(1000+c.tries*500,5000));return}
  U.chk=null;
- if(r==='adopted'){if(c.kind==='gather')fx(c.id,VIL.act.GAIN,0);else{U.pn={view:'main'};pnRender();if(c.kind==='expand'){U.newSlot=5;setTimeout(()=>{U.newSlot=0;if(U.pn&&U.pn.view==='main')pnRender()},2600)}}sound('pair');refreshGather();toast(MSG_OK,3500)}
- else if(r==='notsaved'){refreshGather();if(U.pn)pnUpd();toast(c.kind==='gather'?MSG_FAIL:c.kind==='expand'?MSG_FAIL_EXP:MSG_FAIL_MV,6000);sound('miss')}
+ if(r==='adopted'){if(c.kind==='gather')fx(c.id,VIL.act.GAIN,0);else if(c.kind==='claim')pnRender();else if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{U.pn={view:'main'};pnRender();if(c.kind==='expand'){U.newSlot=5;setTimeout(()=>{U.newSlot=0;if(U.pn&&U.pn.view==='main')pnRender()},2600)}}sound('pair');refreshGather();toast(MSG_OK,3500)}
+ else if(r==='notsaved'){refreshGather();if(U.pn)pnUpd();if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{toast(c.kind==='gather'?MSG_FAIL:c.kind==='expand'?MSG_FAIL_EXP:c.kind==='claim'?MSG_FAIL_Q:MSG_FAIL_MV,6000);sound('miss')}}
  else{refreshGather();toast(MSG_LOCK,6000)}}
 
 // ===== 5c:保管庫・受け取り待ち・入れかえ・拡張(資材を動かすのは、すべて VIL.act の既存の処理。画面は、えらぶ・見せるだけ) =====
@@ -5611,6 +5635,7 @@ function pnHTML(){
  const p=U.pn;if(!p)return'';const s=VIL.get();if(!s)return'';
  if(p.view==='recv'||p.view==='swap'){const e=rowOf(s,p.id);if(!e){U.pn={view:'main'};return pnHTML()}}
  const dis=U.chk?' disabled':'';
+ if(p.view==='board')return boardHTML(s,dis);
  if(p.view==='main'){
   const rows=s.pend.length?s.pend.map(e=>`<div class="vprow" data-pid="${e.id}"><div class="t"><b>${nmH(e.item)}</b> ×${e.n}<small>${T(SRC[e.from]||'')}</small></div><button class="bt" onclick="VILUI.pnGo('recv','${e.id}')">${T('うけとる')}</button></div>`).join(''):`<div class="note">${T('受け取り待ちは ないよ')}</div>`;
   return`<div class="vlpn" data-v="main">${headHTML('保管庫と 受け取り待ち')}<div class="bd"><div class="col"><h4>${T('保管庫')}(${s.store.slots}${T('わく')})</h4><div class="vps"><div class="tiles">${tilesHTML(s)}</div></div></div><div class="col"><h4>${T('受け取り待ち')}(${T('まだ 使えないよ')})</h4><div class="vps rows">${rows}</div></div></div></div>`}
@@ -5630,10 +5655,58 @@ function swapCalc(s){
  if(sel)U.pn.nOut=clampN(U.pn.nOut===null?sel.minOut:U.pn.nOut,sel.minOut,sel.max);
  return{e,n,sp,opts,sel,use,direct:!!(sp&&sp.ok&&sp.direct)}}
 // 数字・ボタンだけを つくり直す(長押し中の「+」「−」ボタンは、作り直さない)
+// ===== 5d:依頼掲示板(依頼の判定・受け取りは、すべて VIL.act の既存の処理。画面は、えらぶ・見せるだけ) =====
+const QCATS=['story','normal','learn'],QLAB={story:'物語',normal:'通常',learn:'学習'};
+const rwdH=r=>Object.keys(r||{}).map(k=>`<i class="${IK[k]}" style="display:inline-block"></i>${esc(vk(k==='crystal'?'特別な結晶':NM[k]))} ×${r[k]}`).join(' ');
+function boardHTML(s,dis){
+ const p=U.pn,b=VIL.act.board();if(!b)return`<div class="vlpn vbq" data-v="board">${headHTML('依頼掲示板')}<div class="bd"><div class="note">${T(MSG_LOCK)}</div></div></div>`;
+ const ck=QCATS.indexOf(p.cat)>=0?p.cat:'story',cat=b[ck],its=cat.items,sel=its.find(x=>x.id===p.sel)||its[0];
+ const tabs=QCATS.map(c=>{const o=b[c],nw=o.items.some(x=>x.state==='done');return`<button class="vbqt${c===ck?' on':''}${o.open?'':' lk'}" data-cat="${c}" aria-label="${T(QLAB[c])}" onclick="VILUI.bqCat('${c}')">${o.open?'':'🔒 '}${T(QLAB[c])}${nw?'<span class="dot"></span>':''}</button>`}).join('');
+ const list=its.map(x=>{const m=x.state==='claimed'?'<span class="mk d">✓</span>':x.state==='done'?'<span class="mk n">!</span>':'<span class="mk">▶</span>';
+  const sub=x.state==='claimed'?T('受け取り済み'):x.state==='done'?T('達成! 受け取れるよ'):`${x.p} / ${x.goal}`;
+  return`<button class="vbqr${sel&&x.id===sel.id?' sel':''}" data-q="${x.id}" onclick="VILUI.bqSel('${x.id}')">${m}<div class="t">${T(x.title)}<small>${sub}</small></div></button>`}).join('');
+ let det;
+ if(!cat.open)det=`<div class="vbqs"><h3>🔒 ${T(QLAB[ck])}${T('依頼')}</h3><div class="note">${T('はじめの 5つの 目標を おえると ひらくよ。')}</div></div>`;
+ else if(!sel)det=`<div class="vbqs"><h3>${T(QLAB[ck])}${T('依頼')}</h3><div class="note">${T('この 依頼は 準備中だよ')}</div></div>`;
+ else{const d=p.done&&p.done.id===sel.id?p.done:null;
+  det=`<h3>${T(sel.title)}${sel.state==='claimed'?`<span class="tg">${T('受け取り済み')}</span>`:''}</h3>`;
+  if(d&&d.pended>0)det+=`<div class="note">${T('保管庫が いっぱいだから、')}<b>${rwdH(sel.reward)}</b> ${T('は 受け取り待ちに 入ったよ。なくならないから あんしん!')}</div>`;
+  else if(d)det+=`<div class="note">${T('ごほうびを 受け取ったよ')}: <b>${rwdH(sel.reward)}</b></div>`;
+  else{det+=`<div>${T(sel.desc)}</div><div class="pgb"><i style="width:${Math.round(sel.p/sel.goal*100)}%"></i><span>${sel.p} / ${sel.goal}</span></div><div class="rwd">${T('ごほうび')}: ${rwdH(sel.reward)}</div>`;
+   if(sel.id==='first'&&sel.state!=='claimed')det+=`<div class="sm">${T('木材は 使わないよ。あつめるだけ!')}</div>`}
+  det=`<div class="vbqs">${det}</div>`;
+  if(d&&d.pended>0)det+=`<button class="bt go" onclick="VILUI.pnGo('main')">${T('保管庫を ひらく')}</button>`;
+  else if(sel.state==='done')det+=`<button class="bt or go vbqgo" data-id="${sel.id}"${dis} onclick="VILUI.bqClaim('${sel.id}')">${T('ごほうびを 受け取る')}</button>`;
+  else if(sel.state==='open')det+=`<button class="bt gr go" disabled>${T('まだ 受け取れないよ')}</button>`}
+ return`<div class="vlpn vbq" data-v="board">${headHTML('依頼掲示板')}<div class="bd"><div class="col"><div class="vbqtabs">${tabs}</div><div class="vps">${list}</div></div><div class="col"><div class="vbqd">${det}</div></div></div></div>`}
+function boardOpen(){
+ if(!U.open)return;if(U.chk){toast(MSG_CHK);return}stopHold();
+ const r=VIL.act.openBoard(); // 初めて開いたときだけ「到着」を保存。2回目からは何も書かない
+ if(!r.ok){
+  if(r.reason==='unknown'||r.reason==='unsure'){startCheck('board','board');return}
+  if(r.reason==='busy')return;
+  if(r.reason==='locked'){toast(MSG_LOCK,6000);return}} // 保存できなかった(save/error/stale)ときも、掲示板は見られる。「到着」は次に開いたときに、もう一度
+ U.pn={view:'board',cat:'story',sel:null};pnRender();refreshGather()}
+function bqCat(c){if(!U.pn||U.pn.view!=='board'||QCATS.indexOf(c)<0)return;U.pn.cat=c;U.pn.sel=null;U.pn.done=null;pnRender()}
+function bqSel(id){if(!U.pn||U.pn.view!=='board')return;U.pn.sel=id;U.pn.done=null;pnRender()}
+function bqClaim(id){
+ const p=U.pn;if(!p||p.view!=='board'||!opGate())return;
+ const r=VIL.act.claimQuest(id); // 達成・未受け取りの判定も、保管庫か受け取り待ちへの報酬の入れ先も、ここで決まる
+ if(r.ok){sound('agari');U.pn.sel=id;U.pn.done={id,pended:r.pended|0,stored:r.stored|0};pnRender();refreshGather();toast(r.pended>0?'ごほうびは 受け取り待ちに 入ったよ':'ごほうびを 受け取ったよ',3500);return}
+ switch(r.reason){
+  case'unknown':case'unsure':startCheck('claim','claim');return;
+  case'busy':return;
+  case'adopted':pnRender();refreshGather();toast(MSG_OK,3500);return;
+  case'claimed':pnRender();refreshGather();toast('もう 受け取り済みだよ',3500);return;
+  case'stale':pnRender();refreshGather();toast(MSG_STALE,5000);return;
+  case'locked':refreshGather();toast(MSG_LOCK,6000);return;
+  case'save':case'error':U.opT=0;toast(MSG_FAIL_Q,6000);sound('miss');pnUpd();return;
+  default:U.opT=0;pnRender();refreshGather();toast(MSG_RETRY,5000)}}
 function pnUpd(){
  const p=U.pn,root=U.root;if(!p||!root)return;const s=VIL.get();if(!s)return;
  const q=sel=>root.querySelector(sel),go=q('#pngo'),note=q('#pnnote'),stn=q('.stn'),bs=root.querySelectorAll('.stb');
  const lock=!!U.chk;
+ if(p.view==='board'){root.querySelectorAll('.vbqgo').forEach(b=>{b.disabled=lock});return}
  if(p.view==='recv'){const c=recvCalc(s);if(!c)return;stn.textContent=c.n;
   note.textContent=vk(c.ad>0?`あと ${c.ad}こ 入るよ`:'いま 保管庫は いっぱい。入れかえが ひつようだよ。');
   go.textContent=vk(c.fits?`${c.n}こ うけとる`:'入れかえに すすむ');go.className='bt'+(c.fits?'':' or');go.disabled=lock;
@@ -5666,7 +5739,7 @@ function pnRender(){
  if(!h){if(old)old.remove();showToast();return}
  if(old)old.outerHTML=h;else{const md=U.root.querySelector('.vlmd');md.insertAdjacentHTML('beforebegin',h)}
  pnUpd();showToast()}
-function pnOpen(view){if(!U.open)return;if(U.chk){toast(MSG_CHK);return}stopHold();U.pn={view:view||'main'};pnRender()}
+function pnOpen(view){if(!U.open)return;if(view==='board')return boardOpen();if(U.chk){toast(MSG_CHK);return}stopHold();U.pn={view:view||'main'};pnRender()}
 function pnClose(){stopHold();U.pn=null;pnRender()}
 function pnGo(view,id){stopHold();if(view==='recv'){const keep=U.pn&&U.pn.view==='swap'&&U.pn.id===id?U.pn.n:undefined;U.pn={view:'recv',id,n:keep}}else if(view==='swap'){U.pn={view:'swap',id:U.pn.id,n:U.pn.n}}else U.pn={view};pnRender()}
 function pnAll(){const s=VIL.get(),e=U.pn&&rowOf(s,U.pn.id);if(!e)return;U.pn.n=e.n;pnUpd()}
@@ -5716,6 +5789,9 @@ function guideInfo(s){
   if(it.direct)return{m:`${nm}が 受け取り待ちに あるよ。保管庫へ 移そう。`,g:`目標: 受け取り待ちの ${nm}を 保管庫へ 移そう`,open:'main'};
   if(it.swap)return{m:`保管庫が いっぱいだよ。${NM[it.swap.item]}を 受け取り待ちへ 戻して、${nm}を 受け取ろう。`,g:`目標: ${nm}を 保管庫へ 入れかえよう`,open:'main'};
   return{m:`${nm}が いっぱいで 受け取れないよ。${nm}を 使うと 空きが できるよ。`,g:`目標: ${nm}を 使って 空きを 作ろう`,open:'main'}}
+ if(h&&h.type==='board')return{m:'依頼掲示板を 見てみよう。',g:'目標: 依頼掲示板を ひらこう',open:'board'};
+ if(h&&h.type==='gather'&&h.goal)return{m:`木材を あと ${Math.max(0,h.goal-h.p)}こ あつめよう。木を タップしてね。`,g:`目標: 木材を ぜんぶで ${h.goal}こ (${h.p}/${h.goal})`,open:null};
+ if(h&&h.type==='claim')return{m:'やったね! 木材が あつまったよ。掲示板で ごほうびを 受け取ろう。',g:'目標: 掲示板で ごほうびを 受け取ろう',open:'board'};
  if(h&&h.type==='gather'&&h.missing){const k=Object.keys(h.missing)[0];return{m:`${NM[k]}が あと ${h.missing[k]}こ いるよ。木や岩を タップして あつめよう。`,g:`目標: ${NM[k]}を あつめよう`,open:null}}
  if(h&&h.type==='blocked')return{m:'特別な結晶は 依頼の ごほうびで もらえるよ。',g:'目標: 依頼を 達成しよう',open:null};
  if(h&&h.type==='expand')return{m:'材料が そろったよ。保管庫を ひろげよう。',g:'目標: 保管庫を 5わくに しよう',open:'expand'};
@@ -5724,6 +5800,7 @@ function guideInfo(s){
   if(ads&&ads[e.item].total===0){const sp=VIL.act.swapPlan(e.id,1);if(sp&&sp.ok&&!sp.options.length){const nm=NM[e.item];
    return{m:`${nm}が いっぱいで 受け取れないよ。${nm}を 使うと 空きが できるよ。`,g:`目標: ${nm}を 使って 空きを 作ろう`,open:'main'}}}}
  if(pend>0)return{m:`受け取り待ちに ${pend}こ あるよ。保管庫を ひらこう。`,g:'目標: 受け取り待ちを 保管庫へ 移そう',open:'main'};
+ if(!(t&&!t.done)){const bq=VIL.act.board();if(bq&&QCATS.some(c=>bq[c].items.some(x=>x.state==='done')))return{m:'受け取れる ごほうびが あるよ。掲示板を ひらこう。',g:'目標: 掲示板で ごほうびを 受け取ろう',open:'board'}}
  return idle}
 function updGuide(s){
  const g=guideInfo(s),m=U.root.querySelector('.vlgd .m'),e=U.root.querySelector('.vlgd .g'),b=U.root.querySelector('.vlgd .vlopen');
@@ -5750,8 +5827,8 @@ window.VILUI={
  openTest,draw,
  goHome:close,
  goBack(){if(U.pn)pnClose();else close()}, // 窓が開いているときは窓を閉じる。閉じているときだけホームへ
- pnOpen,pnClose,pnGo,pnAll,pnOut,pnDo,hold,hstop:stopHold,stepK,get pn(){return U.pn},guideInfo:()=>guideInfo(VIL.get()),
- tap(id){U.taps[id]=(U.taps[id]||0)+1;if(GITEM[id])gatherTap(id);else if(id==='storage')pnOpen('main')}, // 5b:木・岩は採集(判定はVIL.gather)。ほかは5aのまま(記録だけ)
+ pnOpen,boardOpen,bqCat,bqSel,bqClaim,pnClose,pnGo,pnAll,pnOut,pnDo,hold,hstop:stopHold,stepK,get pn(){return U.pn},guideInfo:()=>guideInfo(VIL.get()),
+ tap(id){U.taps[id]=(U.taps[id]||0)+1;if(GITEM[id])gatherTap(id);else if(id==='storage')pnOpen('main');else if(id==='board')boardOpen()}, // 5b:木・岩は採集(判定はVIL.gather)。ほかは5aのまま(記録だけ)
  refresh:refreshGather,get chk(){return U.chk},get toastText(){return U.toast&&U.toast.text},
  tp(n){U.tp=n;if(n===0)U.msg='';draw()},
  dbgT(){U.dbg=!U.dbg;draw()},
