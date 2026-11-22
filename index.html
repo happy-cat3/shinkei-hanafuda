@@ -5352,14 +5352,16 @@ addEventListener('resize',rotCheck);addEventListener('orientationchange',rotChec
 <script id="vil-ui">
 (function(){
 'use strict';
-// ===== 町づくり 5a:画面の土台(レイヤー・風景の配置・上のバー・テスト入口)。採集などの操作は、まだつなげない =====
+// ===== 町づくり 5a:画面の土台 / 5b:風景の中での採集(木2・岩2をタップ。採集の可否・保存は VIL.gather にまかせる) =====
 // 入口は URL の末尾 #vil だけ(テスト入口)。保存先は elemVilTest。本番の elemVil と学習データは、読まず・書かない。
 const FR=2.1327; // 風景の枠の縦横比(横/縦)
-const U={open:false,mode:'none',dbg:false,tp:0,small:false,msg:'',taps:{},root:null};
+const U={open:false,mode:'none',dbg:false,tp:0,small:false,msg:'',taps:{},root:null,last:{},chk:null,toast:null,tick:0,ctm:0,ttm:0};
+const GP=['wood1','wood2','stone1','stone2'],GITEM={wood1:'wood',wood2:'wood',stone1:'stone',stone2:'stone'},GATE=300; // 5b:採集点(vil-core の POINTS と同じ)。GATE=同じ点の連続タップを無視する ms
 const VILA={bg:null,obj:{}}; // 正式素材の入れ口。null なら仮の絵。素材を入れても、位置とタップの範囲は変わらない
 
 // --- 漢字・ひらがな(町づくり専用の変換表。ひらがな表示のとき、ここの言葉をかなにする) ---
-const VT=[['テスト中','てすとちゅう'],['特別な結晶','とくべつなけっしょう'],['受け取り待ち','うけとりまち'],['依頼掲示板','いらいけいじばん'],['小さな作業場','ちいさなさぎょうば'],['はじまりの町','はじまりのまち'],
+const MSG_FAIL='うまく保存できなかったよ。資材は増えていないから、もう一度ためしてね。',MSG_CHK='保存できたか確認しているよ',MSG_OK='保存できていたよ',MSG_STALE='町のデータが新しくなったよ。もう一度ためしてね。',MSG_LOCK='町のデータを確認できなかったよ。',MSG_FULL='保管庫がいっぱい → 受け取り待ち';
+const VT=[[MSG_FAIL,'うまくほぞんできなかったよ。しざいはふえていないから、もういちどためしてね。'],[MSG_CHK,'ほぞんできたかかくにんしているよ'],[MSG_STALE,'まちのデータがあたらしくなったよ。もういちどためしてね。'],[MSG_LOCK,'まちのデータをかくにんできなかったよ。'],[MSG_OK,'ほぞんできていたよ'],['がいっぱい','がいっぱい'],['待ち','まち'],['テスト中','てすとちゅう'],['特別な結晶','とくべつなけっしょう'],['受け取り待ち','うけとりまち'],['依頼掲示板','いらいけいじばん'],['小さな作業場','ちいさなさぎょうば'],['はじまりの町','はじまりのまち'],
  ['作業場','さぎょうば'],['掲示板','けいじばん'],['保管庫','ほかんこ'],['木材','もくざい'],['石材','せきざい'],['板材','いたざい'],['結晶','けっしょう'],['空き地','あきち'],
  ['ルナ先生','ルナせんせい'],['案内','あんない'],['出る','でる'],['目標','もくひょう'],['戻る','もどる'],['設定','せってい'],['小さく','ちいさく'],['大きく','おおきく'],['準備中','じゅんびちゅう']]
  .sort((a,b)=>b[0].length-a[0].length);
@@ -5421,18 +5423,47 @@ const CSS=`
 .vltp>div{background:#0c1426;border:2px solid #2a3c6b;border-radius:10px;padding:12px;max-width:min(94%,560px);max-height:92%;overflow:auto;color:#e8ecf4;font-size:clamp(12px,3.4cqh,16px);line-height:1.5}
 .vltp h3{margin:0 0 6px;font-size:1.1em}.vltp p{margin:4px 0}.vltp code{background:#1b2a4d;padding:1px 5px;border-radius:4px;color:#ffeb3b}.vltp ul{margin:4px 0;padding-left:1.2em}
 .vltp .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.vltp button{min-height:40px;padding:0 12px;border-radius:8px;border:1px solid #6b7fb5;background:#1b2a4d;color:#fff;font:inherit;cursor:pointer}.vltp button.dg{background:#8a1f1f;border-color:#e24b4a}
+.vlfx{position:absolute;inset:0;pointer-events:none}
+.vlo.gp.rdy::before{content:"";position:absolute;left:50%;bottom:-3%;width:150%;height:20%;transform:translateX(-50%);border-radius:50%;border:2px solid rgba(255,248,176,.7);box-shadow:0 0 10px 2px rgba(255,248,176,.45);animation:vlglow 2.6s ease-in-out infinite;pointer-events:none}
+.vlo.gp.rock.rdy::before{height:34%;bottom:-8%}
+@keyframes vlglow{0%,100%{opacity:.3}50%{opacity:.85}}
+.vlo.gp.cd{filter:brightness(.55) saturate(.6)}
+.vlo.sway>svg,.vlo.sway>img{transform-origin:50% 100%;animation:vlsway .55s ease-in-out}
+@keyframes vlsway{0%,100%{transform:rotate(0)}20%{transform:rotate(-5deg)}45%{transform:rotate(4.5deg)}70%{transform:rotate(-2.5deg)}}
+.vlo.hop>svg,.vlo.hop>img{transform-origin:50% 100%;animation:vlhop .45s ease-out}
+@keyframes vlhop{0%{transform:none}30%{transform:translateY(-9%) scale(1.04,.97)}60%{transform:translateY(0) scale(.97,1.04)}100%{transform:none}}
+.vlcd{position:absolute;transform:translate(-50%,0);padding:1px 8px;border-radius:10px;background:rgba(20,30,24,.78);color:#fff;font-weight:700;font-size:clamp(11px,2.9cqh,17px);white-space:nowrap;pointer-events:none;display:none}
+.vlcd.on{display:block}
+.vlpop{position:absolute;transform:translate(-50%,0);display:flex;flex-direction:column;align-items:center;font-weight:800;font-size:clamp(14px,4.2cqh,26px);color:#fff;text-shadow:0 1px 3px #000,0 0 6px #000a;white-space:nowrap;animation:vlpop 1.05s ease-out forwards}
+.vlpop small{font-size:clamp(11px,2.8cqh,15px);font-weight:700;text-align:center;line-height:1.3;background:rgba(20,30,24,.7);border-radius:8px;padding:0 6px;margin-top:2px}
+@keyframes vlpop{0%{opacity:0;transform:translate(-50%,6px)}15%{opacity:1}100%{opacity:0;transform:translate(-50%,-36px)}}
+.vlleaf,.vlshard{position:absolute;pointer-events:none;animation:vlpart 1s ease-out forwards}
+.vlleaf{width:9px;height:5px;background:#6cc04f;border-radius:50% 0}
+.vlshard{width:6px;height:6px;background:#bdbdbd;transform:rotate(30deg)}.vlshard.cy{background:#8fe3f0}
+@keyframes vlpart{0%{opacity:0;transform:translate(0,0) rotate(0)}12%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--r))}}
+.vlmsg{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(56px,15cqh) + max(4px,1.5cqh) + 6px);max-width:86%;text-align:center;background:rgba(30,40,34,.9);color:#fff;padding:5px 12px;border-radius:10px;font-weight:700;font-size:clamp(12px,3.3cqh,18px);line-height:1.35;pointer-events:none}
+.vlpdw{display:contents}
 .orb circle{animation:vlorb 3.2s ease-in-out infinite}
 @keyframes vlorb{0%,100%{opacity:.45}50%{opacity:1}}
-@media (prefers-reduced-motion:reduce){.orb circle{animation:none;opacity:.8}}
+@media (prefers-reduced-motion:reduce){.orb circle{animation:none;opacity:.8}
+.vlo.sway>svg,.vlo.sway>img,.vlo.hop>svg,.vlo.hop>img{animation:none}
+.vlo.gp.rdy::before{animation:none;opacity:.7}
+.vlleaf,.vlshard{display:none}
+.vlpop{animation:vlpopf 1.4s linear forwards}
+@keyframes vlpopf{0%{opacity:0}10%{opacity:1}75%{opacity:1}100%{opacity:0}}}
 `;
 
 function resChips(s){const v=k=>s?s.store.items[k]:'-';
  return[['w','木材','wood'],['s','石材','stone'],['p','板材','plank'],['c','結晶','crystal']].map(([c,l,k])=>`<span class="vlc" role="img" aria-label="${esc(vk(l))} ${v(k)}" title="${esc(vk(l))}"><i class="${c}"></i>${v(k)}</span>`).join('')}
+function pendHTML(s){const n=s?s.pend.reduce((a,p)=>a+p.n,0):0;
+ return n>0?`<span class="vlpd" role="img" aria-label="${esc(vk('受け取り待ち'))} ${n}" title="${esc(vk('受け取り待ち'))}">${esc(vk('待ち'))} ${n}</span>`:''}
 function objHTML(){
  let art='',hit='',cap='';
  for(const o of OBJ){const a=VILA.obj[o.id];
   const inner=a?`<img src="${esc(a)}" alt="">`:ART[o.kind];
-  art+=`<div class="vlo" data-o="${o.id}" style="left:${o.cx}%;top:${o.cy}%;width:${o.aw}%;height:${o.ah}%">${inner}</div>`;
+  const gp=GITEM[o.id];
+  if(gp)cap+=`<div class="vlcd" data-cd="${o.id}" style="left:${o.cx}%;top:${o.cy+o.ah/2}%"></div>`;
+  art+=`<div class="vlo${gp?' gp '+o.kind:''}" data-o="${o.id}" style="left:${o.cx}%;top:${o.cy}%;width:${o.aw}%;height:${o.ah}%">${inner}</div>`;
   if(o.cap&&!a)cap+=`<div class="vlcap" style="left:${o.cx}%;top:${o.cy+o.ah/2}%">${esc(vk(o.name))}</div>`;
   hit+=`<button class="vlh" data-h="${o.id}" aria-label="${esc(vk(o.name))}" style="left:${o.cx}%;top:${o.cy}%;width:${o.hw}%;height:${o.hh}%" onclick="VILUI.tap('${o.id}')"></button>`}
  return`<div class="vlob">${art}</div><div class="vlcp">${cap}</div><div class="vlhit">${hit}</div>`}
@@ -5448,18 +5479,70 @@ function modalHTML(){ // 歯車などの既存の窓(V が決める)を、その
  let h='';try{h=modal()}catch(e){h=''}return h}
 function draw(){
  if(!U.root)return;
- const s=VIL.get(),pend=s?s.pend.reduce((a,p)=>a+p.n,0):0,test=U.mode==='test';
+ const s=VIL.get(),test=U.mode==='test';
  const luna=(typeof LUNA_IMGS!=='undefined'&&LUNA_IMGS[0])?`<img src="${LUNA_IMGS[0]}" alt="">`:'';
  const bg=VILA.bg?`<img src="${esc(VILA.bg)}" alt="">`:BGSVG;
  U.root.className='vlw'+(U.dbg?' dbg':'')+(VILA.bg?' hasbg':'');
  U.root.style.setProperty('--vbg',VILA.bg?`url(${VILA.bg})`:'none');
  U.root.innerHTML=`<div class="vls"><div class="vlf"><div class="vlbg">${bg}</div>${objHTML()}<div class="vlfx"></div></div>
  <div class="vlbar"><button class="vlb" onclick="VILUI.goHome()">${esc(vk('戻る'))}</button><div class="vlt">${esc(vk('はじまりの町'))}</div><div class="vlres">${resChips(s)}</div>
- ${pend>0?`<span class="vlpd" role="img" aria-label="${esc(vk('受け取り待ち'))} ${pend}" title="${esc(vk('受け取り待ち'))}">●${pend}</span>`:''}
+ <span class="vlpdw">${pendHTML(s)}</span>
  <button class="vlb" onclick="view('gear')">${esc(vk('設定'))}</button>${test?`<button class="vlb" onclick="VILUI.tp(1)">${esc(vk('テスト中'))}</button>`:''}</div>
  <div class="vlgd${U.small?' sm':''}"><div class="vlav">${luna}</div><div class="vlbub"><div class="m">${esc(vk('ルナ先生の 案内が ここに 出るよ'))}</div><div class="g">${esc(vk('目標: 準備中'))}</div></div><button class="vlb" onclick="VILUI.toggleSmall()">${esc(vk(U.small?'大きく':'小さく'))}</button></div>
  <div class="vlmd">${modalHTML()}</div>${tpHTML()}</div>`;
+ refreshGather();showToast();
 }
+
+// ===== 5b:採集 =====
+const remainOf=(s,id)=>s&&s.gather&&s.gather[id]?Math.max(0,Math.min(s.gather[id].at-VIL.now(),VIL.GCD)):0; // 残り ms。保存された時刻から、いまの時刻で毎回 計算し直す
+function updBar(s){const r=U.root&&U.root.querySelector('.vlres');if(r)r.innerHTML=resChips(s);const p=U.root&&U.root.querySelector('.vlpdw');if(p)p.innerHTML=pendHTML(s)}
+function refreshGather(){ // 光の輪・暗くする・残り秒数・資源の数字を、保存データと現在時刻から つくり直す(演出の状態は持たない)
+ if(!U.root)return;const s=VIL.get();
+ for(const id of GP){const o=OBJ.find(x=>x.id===id),rem=remainOf(s,id),on=!!s&&rem>0,n=Math.ceil(rem/1000),t=vk('あと')+' '+n;
+  const el=U.root.querySelector(`.vlo[data-o="${id}"]`),cd=U.root.querySelector(`.vlcd[data-cd="${id}"]`),h=U.root.querySelector(`.vlh[data-h="${id}"]`);
+  if(el){el.classList.toggle('cd',on);el.classList.toggle('rdy',!!s&&!on&&!U.chk)}
+  if(cd){cd.classList.toggle('on',on);if(on&&cd.textContent!==t)cd.textContent=t}
+  if(h){h.setAttribute('aria-label',vk(o.name)+(on?' '+t:''));h.setAttribute('aria-disabled',on?'true':'false')}}
+ updBar(s)}
+function showToast(){
+ if(!U.root)return;let el=U.root.querySelector('.vlmsg');const t=U.toast;
+ if(!t){if(el)el.remove();return}
+ if(!el){el=document.createElement('div');el.className='vlmsg';el.setAttribute('role','status');U.root.querySelector('.vls').appendChild(el)}
+ el.textContent=vk(t.text)}
+function toast(text,ms){clearTimeout(U.ttm);U.toast={text};showToast();if(ms)U.ttm=setTimeout(()=>{U.toast=null;showToast()},ms)}
+function fx(id,n,pended){ // 木や岩の反応・資材アイコンと +n・かけら。効果レイヤー(.vlfx)に出し、絵や当たり判定は動かさない
+ const o=OBJ.find(x=>x.id===id),L=U.root&&U.root.querySelector('.vlfx'),el=U.root&&U.root.querySelector(`.vlo[data-o="${id}"]`);if(!o||!L||!el)return;
+ el.classList.remove('sway','hop');void el.offsetWidth;el.classList.add(o.kind==='tree'?'sway':'hop');setTimeout(()=>el.classList.remove('sway','hop'),700);
+ const top=o.kind==='tree'?o.cy-o.ah*.15:o.cy-2,sym=GITEM[id]==='wood'?'w':'s';
+ let h=`<div class="vlpop" style="left:${o.cx}%;top:${top}%"><span class="vlc"><i class="${sym}"></i>+${n}</span>${pended>0?`<small>${esc(vk(MSG_FULL)).replace(' → ','<br>→ ')}</small>`:''}</div>`;
+ if(o.kind==='tree')[[-1,-16,100],[0,-8,-140],[1,14,160]].forEach(([k,dx,r])=>{h+=`<span class="vlleaf" style="left:${o.cx+k*2.2}%;top:${o.cy-o.ah*.3}%;--dx:${dx}px;--dy:62px;--r:${r}deg"></span>`});
+ else[[-18,-14,0],[14,-18,0],[-9,-22,1],[20,-6,0]].forEach(([dx,dy,c])=>{h+=`<span class="vlshard${c?' cy':''}" style="left:${o.cx}%;top:${o.cy}%;--dx:${dx}px;--dy:${dy}px;--r:200deg"></span>`});
+ const before=L.children.length;L.insertAdjacentHTML('beforeend',h);
+ const made=[...L.children].slice(before);setTimeout(()=>made.forEach(e=>e.remove()),1400)}
+function sound(name){try{if(typeof SE!=='undefined'&&SE[name])SE[name]()}catch(e){}} // 既存の効果音だけ(新しい音は作らない)
+function gatherTap(id){
+ const t=Date.now();
+ if(U.last[id]&&t-U.last[id]<GATE)return; // 同じ点の連続タップだけ ほんの少し無視(ほかの点は じゃましない)
+ if(U.chk){toast(MSG_CHK);return} // 保存の確認中は、同じ操作をくり返さない
+ U.last[id]=t;
+ const r=VIL.act.gather(id);
+ if(r.ok){fx(id,r.stored+r.pended,r.pended);sound('pair');refreshGather();return}
+ switch(r.reason){
+  case'cooldown':case'busy':refreshGather();return;
+  case'unknown':case'unsure':startCheck(id);return;
+  case'adopted':refreshGather();toast(MSG_OK,3500);return;
+  case'stale':refreshGather();toast(MSG_STALE,5000);return;
+  case'locked':refreshGather();toast(MSG_LOCK,6000);return;
+  default:refreshGather();toast(MSG_FAIL,6000);sound('miss')}}
+function startCheck(id){U.chk={id,tries:0};toast(MSG_CHK);refreshGather();clearTimeout(U.ctm);U.ctm=setTimeout(checkStep,1000)}
+function checkStep(){ // 保存できたか分からないとき:状態の確認だけをくり返す(同じ採集は くり返さない)
+ const c=U.chk;if(!c)return;c.tries++;let r='unknown';try{r=VIL.reverify()}catch(e){}
+ if(r==='unknown'){U.ctm=setTimeout(checkStep,Math.min(1000+c.tries*500,5000));return}
+ U.chk=null;
+ if(r==='adopted'){fx(c.id,VIL.act.GAIN,0);sound('pair');refreshGather();toast(MSG_OK,3500)}
+ else if(r==='notsaved'){refreshGather();toast(MSG_FAIL,6000);sound('miss')}
+ else{refreshGather();toast(MSG_LOCK,6000)}}
+
 function ensureCss(){if(document.getElementById('vil-css'))return;const st=document.createElement('style');st.id='vil-css';st.textContent=CSS;document.head.appendChild(st)}
 function killOpening(){ // オープニングを、保存(elemOpDone)をせずに止める。テスト入口が、既存のキーを書かないため
  try{if(typeof OPS!=='undefined'&&OPS){clearTimeout(OPS.tm);if(OPS.el)OPS.el.remove();OPS=null;if(typeof opMusicStop==='function')opMusicStop()}}catch(e){}}
@@ -5467,19 +5550,20 @@ function openTest(){
  if(U.open)return true;
  if(!VIL.setNamespace('Test'))return false; // すでに本番の名前で初期化されていたら、切り替えられない→開かない(本番データを守る)
  ensureCss();killOpening();
- VIL.init();U.mode='test';U.open=true;
+ VIL.init();U.mode='test';U.open=true;clearInterval(U.tick);U.tick=setInterval(refreshGather,1000);
  const app=document.getElementById('app');if(app)app.style.display='none';
  U.root=document.createElement('div');U.root.id='vilroot';document.body.appendChild(U.root);
  draw();return true}
 function close(){
- if(!U.open)return;U.open=false;if(U.root){U.root.remove();U.root=null}
+ if(!U.open)return;U.open=false;clearInterval(U.tick);U.tick=0;if(U.root){U.root.remove();U.root=null}
  const app=document.getElementById('app');if(app)app.style.display='';
  try{V=null;HOMEMAP=true;render()}catch(e){}}
 window.VILUI={
  get open(){return U.open},get mode(){return U.mode},get dbg(){return U.dbg},get taps(){return U.taps},OBJ,VILA,vk,VT,FR,
  openTest,draw,
  goHome:close,
- tap(id){U.taps[id]=(U.taps[id]||0)+1}, // 5a:タップの確認だけ(ゲームの操作は つなげない)
+ tap(id){U.taps[id]=(U.taps[id]||0)+1;if(GITEM[id])gatherTap(id)}, // 5b:木・岩は採集(判定はVIL.gather)。ほかは5aのまま(記録だけ)
+ refresh:refreshGather,get chk(){return U.chk},get toastText(){return U.toast&&U.toast.text},
  tp(n){U.tp=n;if(n===0)U.msg='';draw()},
  dbgT(){U.dbg=!U.dbg;draw()},
  toggleSmall(){U.small=!U.small;draw()},
@@ -5498,6 +5582,9 @@ window.render=function(){
 // --- #vil のときだけ、オープニングを出さない ---
 const o0=window.opStart;
 window.opStart=function(){if(location.hash==='#vil'&&U.mode==='test')return;return o0.apply(this,arguments)};
+// --- 画面に戻ったとき(別アプリ・タブから戻る・再表示)は、現在時刻から残り秒数を計算し直す ---
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&U.open)refreshGather()});
+addEventListener('pageshow',()=>{if(U.open)refreshGather()});addEventListener('focus',()=>{if(U.open)refreshGather()});
 // --- テスト入口 ---
 function entrance(){if(location.hash==='#vil'&&!U.open)openTest()}
 entrance();
