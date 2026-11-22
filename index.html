@@ -528,6 +528,79 @@ function spend(c){
 }
 const act={gather,moveToStore,swap,swapPlan,put,canSpend,spend,addable:()=>{const s=VIL.get();return s?Object.fromEntries(ITEMS.map(k=>[k,addable(s,k)])):null},POINTS,GAIN};
 
+// ===== 第3段階:小さな作業場・板材・依頼掲示板(動きだけ。画面からは まだ呼ばない) =====
+const WS_COST={wood:6,stone:4},PLANK_COST={wood:2};
+function spendS(s,c,i){ // 保管庫の資材だけを数える。足りなければ false(i.missing に不足数)
+  const miss={};for(const k in c)if(s.store.items[k]<c[k])miss[k]=c[k]-s.store.items[k];
+  if(Object.keys(miss).length){i.reason='short';i.missing=miss;return false}
+  const d={};for(const k in c){s.store.items[k]-=c[k];d[k]=(d[k]||0)-c[k]}i.delta=Object.assign(i.delta||{},d);return true}
+const addDelta=(i,k,n)=>{i.delta=i.delta||{};i.delta[k]=(i.delta[k]||0)+n};
+// 3a-1 作業場の建築:木材6+石材4(保管庫のみ)。1回だけ。実績(tut.ach.build)は、資材を使ったあとも残る
+function build(){
+  return run((s,i)=>{if(s.build.workshop){i.reason='built';return false}
+    if(!spendS(s,WS_COST,i))return false;
+    s.build.workshop=true;s.tut.ach.build=true});
+}
+// 3a-2 板材の加工:木材2→板材1・60秒・同時に1件・取り消しなし。完成は時刻で判定(保存するのは idle と run だけ)
+function startPlank(){
+  return run((s,i)=>{if(!s.build.workshop){i.reason='noworkshop';return false}
+    if(s.work.state!=='idle'){i.reason='busy';return false}
+    if(!spendS(s,PLANK_COST,i))return false;
+    s.work={state:'run',item:'plank',end:VIL.now()+WCD}});
+}
+// 完成後の手動受け取り:保管庫に入るなら直接、満杯なら受け取り待ちへ。受け取りが終わった時点で tut.ach.plank を達成にする
+function collectPlank(){
+  return run((s,i)=>{if(!s.build.workshop){i.reason='noworkshop';return false}
+    if(s.work.state!=='run'){i.reason='nowork';return false}
+    const rem=Math.min(s.work.end-VIL.now(),WCD);if(rem>0){i.reason='notready';i.remain=rem;return false}
+    i.delta={plank:1};Object.assign(i,putS(s,'plank',1,'work'));
+    s.done.plank++;s.tut.ach.plank=true;s.work={state:'idle',item:null,end:0}});
+}
+function workInfo(){const s=VIL.get();if(!s)return null;const w=s.work;
+  if(w.state!=='run')return{built:s.build.workshop,state:'idle',remain:0};
+  const rem=Math.max(0,Math.min(w.end-VIL.now(),WCD));return{built:s.build.workshop,state:rem>0?'run':'ready',remain:rem}}
+
+// 3b 依頼掲示板:物語・通常・学習の3分類。依頼の定義はコード内の定数(保存するのは「受け取り済み」だけ。進み具合は そのつど計算)
+// ※通常依頼は中身が未決定なので、まだ1件もない。学習依頼も、正式決定前なので、まだ公開しない(判定の処理だけ act.learn にある)
+const DEFS={
+  first:{cat:'story',title:'はじめての資材集め',desc:'木材を ぜんぶで 4こ あつめよう',goal:4,reward:{crystal:1},prog:s=>Math.min(s.total.wood,4)}
+};
+const CATS=['story','normal','learn'];
+const catOpen=(s,c)=>c==='story'||!!s.tut.done; // 物語は最初の町から。通常・学習はチュートリアル完了後
+const repeatOwed=(n,paid)=>Math.max(0,Math.floor(n/3)-paid); // 通常依頼3件ごとに結晶1個
+function qState(s,id){const d=DEFS[id],e=s.quest.list[id];if(!catOpen(s,d.cat))return{state:'locked',p:0};
+  if(e&&e.claimed)return{state:'claimed',p:d.goal};const p=d.prog(s);return{state:p>=d.goal?'done':'open',p}}
+function board(){const s=VIL.get();if(!s)return null;const o={};
+  CATS.forEach(c=>{o[c]={open:catOpen(s,c),items:[]}});
+  Object.keys(DEFS).forEach(id=>{const d=DEFS[id],q=qState(s,id);o[d.cat].items.push({id,title:d.title,desc:d.desc,goal:d.goal,p:q.p,state:q.state,reward:Object.assign({},d.reward)})});
+  return o}
+// 受け取り:達成していて未受け取りのときだけ。「受け取り済み」の旗と報酬は、同じ1回の保存で決まる
+function claimQuest(id){
+  return run((s,i)=>{const d=DEFS[id];if(!d){i.reason='unknown';return false}
+    const q=qState(s,id);
+    if(q.state==='locked'){i.reason='locked';return false}
+    if(q.state==='claimed'){i.reason='claimed';return false}
+    if(q.state!=='done'){i.reason='notyet';i.p=q.p;i.goal=d.goal;return false}
+    s.quest.list[id]={p:d.goal,done:true,claimed:true};
+    i.stored=0;i.pended=0;
+    for(const k in d.reward){addDelta(i,k,d.reward[k]);const r=putS(s,k,d.reward[k],'reward');i.stored+=r.stored;i.pended+=r.pended}
+    if(d.cat==='normal'){const r=s.quest.repeat;r.n++;const ow=repeatOwed(r.n,r.paid);
+      if(ow>0){r.paid+=ow;addDelta(i,'crystal',ow);const x=putS(s,'crystal',ow,'reward');i.stored+=x.stored;i.pended+=x.pended;i.bonus=ow}}
+    if(id==='first')s.tut.ach.quest=true});
+}
+
+// 3c 学習依頼の判定:既存の MAST を「読むだけ」。習得した数は保存しない(判定のたびに数える)。依頼の公開と報酬は、正式決定まで なし
+// 基準は既存の「おぼえた」(LEARNED_N 回以上せいかい)と同じ。過去の実績も数える。世界樹の経験値や MAST には、いっさい書かない
+function countLearned(mast,minC,prefix){let n=0;for(const k in mast){if(k.indexOf(prefix)===0&&mast[k]&&Number.isInteger(mast[k].c)&&mast[k].c>=minC)n++}return n}
+const learn={
+  countLearned,
+  count(prefix){try{if(typeof MAST==='undefined'||typeof LEARNED_N==='undefined'||!MAST||typeof LEARNED_N!=='number')return null;return countLearned(MAST,LEARNED_N,prefix)}catch(e){return null}},
+  hira(){return learn.count('hira:')},
+  meets(n,prefix){const c=learn.count(prefix||'hira:');return c===null?null:c>=n}
+};
+const act2={build,startPlank,collectPlank,workInfo,board,claimQuest,repeatOwed,learn,DEFS,WS_COST,PLANK_COST};
+Object.assign(act,act2);
+
 window.VIL={KEY,BK,VER,ITEMS,PER,SLOT0,GCD,WCD,now:()=>Date.now(),act,fresh,validate,encode,decode,clampTimes,
   init:load,load,commit,reverify,rescue,
   get:()=>S?clone(S):null,
