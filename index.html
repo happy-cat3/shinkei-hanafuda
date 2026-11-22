@@ -310,7 +310,7 @@ const LUNA_IMG='data:image/webp;base64,UklGRpCiAABXRUJQVlA4WAoAAAAQAAAAHgEAowEAQ
 const KEY='elemVil',BK='elemVilBk',BADP='elemVilBad_',VER=1;
 const ITEMS=['wood','stone','plank','crystal'],PER=10,SLOT0=4;
 const GP=['wood1','wood2','stone1','stone2'],TUT=['arrive','quest','build','plank','expand'];
-const FROM=['gather','work','reward'],WST=['idle','run','done'];
+const FROM=['gather','work','reward','store'],WST=['idle','run','done'];
 const GCD=30000,WCD=60000; // 採集の待ち時間30秒・加工60秒(確定)
 const isI=(n,a,b)=>Number.isInteger(n)&&n>=a&&n<=b;
 const isO=o=>o&&typeof o==='object'&&!Array.isArray(o);
@@ -321,7 +321,7 @@ function fresh(now){
   const g={};GP.forEach(k=>g[k]={at:0});
   const it={};ITEMS.forEach(k=>it[k]=0);
   const a={};TUT.forEach(k=>a[k]=false);
-  return{rev:0,saved:now||Date.now(),city:'first',gather:g,total:{wood:0,stone:0},
+  return{rev:0,seq:0,saved:now||Date.now(),city:'first',gather:g,total:{wood:0,stone:0},
     store:{slots:SLOT0,items:it},pend:[],build:{workshop:false},
     work:{state:'idle',item:null,end:0},done:{plank:0},
     quest:{list:{},repeat:{n:0,paid:0}},tut:{ach:a,done:false,replay:false}};
@@ -331,6 +331,7 @@ function validate(s){
   if(!isO(s))return'root';
   if(!isI(s.rev,0,1e12))return'rev';
   if(!isI(s.saved,0,1e14))return'saved';
+  if(s.seq!==undefined&&!isI(s.seq,0,1e12))return'seq';
   if(typeof s.city!=='string')return'city';
   if(!isO(s.gather))return'gather';
   for(const k of GP){if(!isO(s.gather[k])||!isI(s.gather[k].at,0,1e14))return'gather.'+k}
@@ -340,7 +341,7 @@ function validate(s){
   if(used>st.slots)return'store.over';
   if(!Array.isArray(s.pend)||s.pend.length>10000)return'pend';
   const ids=new Set();
-  for(const p of s.pend){if(!isO(p)||typeof p.id!=='string'||!p.id||ids.has(p.id)||ITEMS.indexOf(p.item)<0||!isI(p.n,1,1e9)||FROM.indexOf(p.from)<0)return'pend.item';ids.add(p.id)}
+  for(const p of s.pend){if(!isO(p)||typeof p.id!=='string'||!p.id||ids.has(p.id)||ITEMS.indexOf(p.item)<0||!isI(p.n,1,1e9)||FROM.indexOf(p.from)<0)return'pend.item';ids.add(p.id);const mm=/^p(\d+)$/.exec(p.id);if(mm&&+mm[1]>(s.seq|0))return'pend.seq'}
   if(!isO(s.build)||typeof s.build.workshop!=='boolean')return'build';
   const w=s.work;if(!isO(w)||WST.indexOf(w.state)<0||!(w.item===null||w.item==='plank')||!isI(w.end,0,1e14))return'work';
   if(!isO(s.done)||!isI(s.done.plank,0,1e9))return'done';
@@ -460,7 +461,74 @@ const rescue={
   }
 };
 
-window.VIL={KEY,BK,VER,ITEMS,PER,SLOT0,GCD,WCD,fresh,validate,encode,decode,clampTimes,
+
+// ===== 第2段階:採集・保管庫・受け取り待ち(動きだけ。画面からは まだ呼ばない) =====
+// 資材の出入りは、すべて commit を通る。操作の前後で「保管庫+受け取り待ち」の合計を比べ、ちがえば その操作ごと取り消す。
+const POINTS={wood1:'wood',wood2:'wood',stone1:'stone',stone2:'stone'},GAIN=2; // 採集ポイントは4か所。1回で2個(確定)
+const usedSlots=s=>ITEMS.reduce((a,k)=>a+Math.ceil(s.store.items[k]/PER),0);
+// 入る数:①同じ種類の枠の空き ②空いている枠(1枠10個) の合計。これで入らない分は、入れかえが必要
+function addable(s,item){const n=s.store.items[item],same=n>0?Math.ceil(n/PER)*PER-n:0,free=Math.max(0,s.store.slots-usedSlots(s))*PER;return{same,free,total:same+free}}
+const totals=s=>{const t={};ITEMS.forEach(k=>t[k]=s.store.items[k]);s.pend.forEach(p=>t[p.item]+=p.n);return t};
+// 受け取り待ちの内部データは「取得元(from)」と一意のID を持つ。同じ資材・同じ取得元は 1行に まとめる(IDは さいしょのものを保つ)
+function pendAdd(s,item,n,from){if(n<=0)return;const e=s.pend.find(p=>p.item===item&&p.from===from);if(e)e.n+=n;else{s.seq=(s.seq|0)+1;s.pend.push({id:'p'+s.seq,item,n,from})}}
+function putS(s,item,n,from){const k=Math.min(n,addable(s,item).total);s.store.items[item]+=k;pendAdd(s,item,n-k,from);return{stored:k,pended:n-k}}
+const dropE=(s,e)=>{if(e.n===0)s.pend.splice(s.pend.indexOf(e),1)};
+function run(fn){
+  const info={};
+  const r=commit(s=>{const b=totals(s);if(fn(s,info)===false)return false;const a=totals(s);
+    for(const k of ITEMS)if(a[k]!==b[k]+((info.delta&&info.delta[k])||0))throw new Error('conserve:'+k)});
+  const o=Object.assign({},info,r);if(!r.ok&&r.reason==='abort'&&info.reason)o.reason=info.reason;
+  return o;
+}
+const isN=n=>Number.isInteger(n)&&n>=1;
+// 採集:ポイントごとに30秒(時刻で持つので、ゲームを閉じていても進む)。保管庫がいっぱいでも止めず、入らない分は受け取り待ちへ
+function gather(pt){
+  if(!POINTS[pt])return{ok:false,reason:'point'};
+  return run((s,i)=>{const now=VIL.now(),rem=Math.min(s.gather[pt].at-now,GCD);
+    if(rem>0){i.reason='cooldown';i.remain=rem;return false}
+    const it=POINTS[pt];s.gather[pt].at=now+GCD;s.total[it]+=GAIN;i.item=it;i.delta={[it]:GAIN};Object.assign(i,putS(s,it,GAIN,'gather'))});
+}
+// 受け取り待ち → 保管庫(n を省くと、入るだけ)。入りきらないときは reason:'nospace' と needSwap:true
+function moveToStore(id,n){
+  return run((s,i)=>{const e=s.pend.find(p=>p.id===id);if(!e){i.reason='notfound';return false}
+    const a=addable(s,e.item);i.addable=a;if(n===undefined)n=Math.min(e.n,a.total);
+    if(!isN(n)){if(a.total<1){i.reason='nospace';i.needSwap=true}else i.reason='badn';return false}
+    if(n>e.n){i.reason='toomany';i.remain=e.n;return false}
+    if(n>a.total){i.reason='nospace';i.needSwap=true;return false}
+    s.store.items[e.item]+=n;e.n-=n;dropE(s,e);i.moved=n;i.left=e.n});
+}
+// 入れかえの案内:nIn 個を入れるには、ほかの資材を最低 何個 出せばよいか
+function planS(s,e,nIn){const out=[];for(const o of ITEMS){if(o===e.item)continue;const c=s.store.items[o];
+  for(let k=1;k<=c;k++){const t=clone(s);t.store.items[o]-=k;if(addable(t,e.item).total>=nIn){out.push({item:o,minOut:k,max:c});break}}}return out}
+function swapPlan(id,nIn){const s=VIL.get();if(!s)return{ok:false,reason:'locked'};const e=s.pend.find(p=>p.id===id);
+  if(!e)return{ok:false,reason:'notfound'};if(!isN(nIn)||nIn>e.n)return{ok:false,reason:'badn',remain:e.n};
+  return{ok:true,direct:addable(s,e.item).total>=nIn,options:planS(s,e,nIn)}}
+// 手動入れかえ(個数を選ぶ):保管庫の outItem を nOut 個 受け取り待ちへ出し、受け取り待ちの nIn 個を保管庫へ入れる。全部成功か、まったく起きないか
+function swap(id,nIn,oItem,nOut){
+  return run((s,i)=>{const e=s.pend.find(p=>p.id===id);if(!e){i.reason='notfound';return false}
+    if(!isN(nIn)||!isN(nOut)){i.reason='badn';return false}
+    if(nIn>e.n){i.reason='toomany';i.remain=e.n;return false}
+    if(ITEMS.indexOf(oItem)<0||oItem===e.item){i.reason='baditem';return false}
+    if(nOut>s.store.items[oItem]){i.reason='notenough';i.have=s.store.items[oItem];return false}
+    const before=clone(s);s.store.items[oItem]-=nOut;
+    if(addable(s,e.item).total<nIn){const op=planS(before,before.pend.find(p=>p.id===id),nIn).find(x=>x.item===oItem);i.reason='needmore';i.minOut=op?op.minOut:null;return false}
+    s.store.items[e.item]+=nIn;e.n-=nIn;dropE(s,e);pendAdd(s,oItem,nOut,'store');i.swapped={in:nIn,out:nOut}});
+}
+// 報酬などを入れる共通の処理(保管庫に入るなら直接、入らない分は受け取り待ち ※正式決定前の案)
+function put(item,n,from){
+  return run((s,i)=>{if(ITEMS.indexOf(item)<0||!isN(n)||FROM.indexOf(from)<0||from==='store'){i.reason='bad';return false}
+    i.delta={[item]:n};Object.assign(i,putS(s,item,n,from))});
+}
+// 建築・加工・拡張に使えるのは、保管庫の資材だけ。受け取り待ちは かぞえない
+function canSpend(c){const s=S;return!!s&&Object.keys(c).every(k=>ITEMS.indexOf(k)>=0&&Number.isInteger(c[k])&&c[k]>=0&&s.store.items[k]>=c[k])}
+function spend(c){
+  return run((s,i)=>{const miss={},d={};for(const k in c){if(ITEMS.indexOf(k)<0||!Number.isInteger(c[k])||c[k]<0){i.reason='badn';return false}if(s.store.items[k]<c[k])miss[k]=c[k]-s.store.items[k]}
+    if(Object.keys(miss).length){i.reason='short';i.missing=miss;return false}
+    for(const k in c){s.store.items[k]-=c[k];d[k]=-c[k]}i.delta=d});
+}
+const act={gather,moveToStore,swap,swapPlan,put,canSpend,spend,addable:()=>{const s=VIL.get();return s?Object.fromEntries(ITEMS.map(k=>[k,addable(s,k)])):null},POINTS,GAIN};
+
+window.VIL={KEY,BK,VER,ITEMS,PER,SLOT0,GCD,WCD,now:()=>Date.now(),act,fresh,validate,encode,decode,clampTimes,
   init:load,load,commit,reverify,rescue,
   get:()=>S?clone(S):null,
   status:()=>({status,why,persisted,unsure:!!unsure,locked:status==='locked'})};
