@@ -5363,7 +5363,10 @@ const VILA={bg:null,obj:{}}; // 正式素材の入れ口。null なら仮の絵�
 // --- 漢字・ひらがな(町づくり専用の変換表。ひらがな表示のとき、ここの言葉をかなにする) ---
 const MSG_FAIL='うまく保存できなかったよ。資材は増えていないから、もう一度ためしてね。',MSG_CHK='保存できたか確認しているよ',MSG_OK='保存できていたよ',MSG_STALE='町のデータが新しくなったよ。もう一度ためしてね。',MSG_LOCK='町のデータを確認できなかったよ。',MSG_FULL='保管庫がいっぱい → 受け取り待ち',MSG_FAIL_MV='うまく保存できなかったよ。資材はそのままだよ。もう一度ためしてね。',MSG_FAIL_EXP='うまく保存できなかったよ。資材は使われていないよ。もう一度ためしてね。',MSG_RETRY='状態が かわったよ。もう一度 えらんでね。',MSG_NOOPT='入れかえできる 資材が ないよ。同じ 資材どうしは 入れかえられないよ。個数を 減らすか、資材を 使おう。',MSG_EXPOK='ひろがったよ!';
 const MSG_FAIL_Q='うまく保存できなかったよ。ごほうびは 増えていないから、もう一度ためしてね。';
-const VQ=[[MSG_FAIL_Q,'うまくほぞんできなかったよ。ごほうびはふえていないから、もういちどためしてね。'],
+const MSG_FAIL_W='うまく保存できなかったよ。資材は 使っていないから、もう一度ためしてね。',MSG_FAIL_C='うまく保存できなかったよ。板材は まだ 受け取っていないから、もう一度ためしてね。';
+const VQ=[[MSG_FAIL_W,'うまくほぞんできなかったよ。しざいは つかっていないから、もういちどためしてね。'],[MSG_FAIL_C,'うまくほぞんできなかったよ。はんざいは まだ うけとっていないから、もういちどためしてね。'.replace('はんざい','いたざい')],
+ ['板材を 受け取る','板材を うけとる'],['板材を 受け取ったよ','板材を うけとったよ'],['板材が できたよ! 作業場で 受け取ろう。','板材が できたよ! 作業場で うけとろう。'],['目標: 作業場で 板材を 受け取ろう','目標: 作業場で 板材を うけとろう'],
+ ['資材が そろったよ。','しざいが そろったよ。'],['秒','びょう'],['資材','しざい'],['作業場','さぎょうば'],['下の','したの'],[MSG_FAIL_Q,'うまくほぞんできなかったよ。ごほうびはふえていないから、もういちどためしてね。'],
  ['はじめの 5つの 目標を おえると ひらくよ。','はじめの 5つの もくひょうを おえると ひらくよ。'],
  ['達成! 受け取れるよ','たっせい! うけとれるよ'],['まだ 受け取れないよ','まだ うけとれないよ'],['ごほうびを 受け取る','ごほうびを うけとる'],['ごほうびを 受け取ったよ','ごほうびを うけとったよ'],['受け取り済み','うけとりずみ'],
  ['保管庫が いっぱいだから、','ほかんこが いっぱいだから、'],['受け取り待ちに 入ったよ。なくならないから あんしん!','うけとりまちに はいったよ。なくならないから あんしん!'],
@@ -5398,6 +5401,7 @@ const ART={
  rock:`<svg viewBox="0 0 100 70" preserveAspectRatio="xMidYMid meet"><ellipse cx="50" cy="48" rx="44" ry="20" fill="#9a9a9a"/><ellipse cx="40" cy="40" rx="20" ry="9" fill="#bdbdbd"/><polygon points="68,30 74,8 80,30" fill="#8fe3f0"/><polygon points="78,32 84,16 89,32" fill="#b8f5ff"/></svg>`,
  board:`<svg viewBox="0 0 100 120" preserveAspectRatio="xMidYMid meet"><rect x="46" y="60" width="8" height="58" fill="#7a5230"/><rect x="8" y="8" width="84" height="56" rx="6" fill="#c79a5a" stroke="#8a6a36" stroke-width="2"/><rect x="18" y="20" width="26" height="14" fill="#f5e6c0"/><rect x="50" y="22" width="30" height="10" fill="#f5e6c0"/><rect x="20" y="40" width="40" height="8" fill="#f5e6c0"/></svg>`,
  lot:`<svg viewBox="0 0 140 90" preserveAspectRatio="xMidYMid meet"><rect x="6" y="14" width="128" height="68" rx="10" fill="#cdbb8f" stroke="#8a7a52" stroke-width="2" stroke-dasharray="8 6"/><rect x="40" y="30" width="60" height="38" fill="#b89a62" opacity=".6"/></svg>`,
+ shop:`<svg viewBox="0 0 140 90" preserveAspectRatio="xMidYMid meet"><rect x="6" y="14" width="128" height="68" rx="10" fill="#cdbb8f" stroke="#8a7a52" stroke-width="2"/><g transform="translate(26,3) scale(.74)"><polygon points="6,52 60,8 114,52" fill="#7a4f26"/><rect x="14" y="52" width="92" height="52" fill="#a8743e"/><rect x="48" y="68" width="24" height="36" fill="#6b4420"/><rect x="14" y="52" width="92" height="6" fill="#8a5c2c"/></g></svg>`,
  chest:`<svg viewBox="0 0 120 110" preserveAspectRatio="xMidYMid meet"><polygon points="6,52 60,8 114,52" fill="#7a4f26"/><rect x="14" y="52" width="92" height="52" fill="#a8743e"/><rect x="48" y="68" width="24" height="36" fill="#6b4420"/><rect x="14" y="52" width="92" height="6" fill="#8a5c2c"/></svg>`};
 const BGSVG=`<svg viewBox="0 0 1000 469" preserveAspectRatio="xMidYMid slice"><rect width="1000" height="469" fill="#cfe6f3"/><rect y="0" width="1000" height="120" fill="#bfe0f0"/>
 <ellipse cx="555" cy="112" rx="62" ry="12" fill="#a79d7c"/><ellipse cx="555" cy="104" rx="60" ry="9" fill="#7fb56f"/><circle cx="545" cy="90" r="11" fill="#3f8f4a"/><rect x="541" y="94" width="8" height="12" fill="#7a5230"/><path d="M535 120 L535 168" stroke="#9fdcf0" stroke-width="3" opacity=".7"/>
@@ -5411,6 +5415,7 @@ const BGSVG=`<svg viewBox="0 0 1000 469" preserveAspectRatio="xMidYMid slice"><r
 <g class="orb"><circle cx="120" cy="380" r="6" fill="#b8f5ff"/><circle cx="880" cy="350" r="6" fill="#b8f5ff"/><circle cx="520" cy="430" r="5" fill="#ffe9a8"/><circle cx="260" cy="150" r="5" fill="#ffe9a8"/></g></svg>`;
 
 const CSS=`
+.vbq .vwkrow{flex:none;display:flex;gap:6px}.vbq .vwkrow .bt{flex:1;width:auto}.vbq .vwkc{display:flex;justify-content:space-between;gap:6px;align-items:center;min-height:1.6em}.vbq .vwkc b.ok{color:#2a8a3a}.vbq .vwkc b.no{color:#c0392b}
 .vbq .bd{grid-template-columns:40% 1fr;gap:6px;padding:4px 8px}
 .vbq .vbqtabs{display:flex;gap:4px;flex:none;margin-bottom:4px}
 .vbq .vbqt{flex:1;min-width:0;min-height:40px;border:2px solid #b8a27a;border-radius:10px;background:#f6f1e3;font:inherit;font-weight:800;font-size:max(11px,.92em);line-height:1.1;position:relative;color:#3a2e1c;cursor:pointer;padding:0 2px}
@@ -5571,7 +5576,10 @@ function refreshGather(){ // 光の輪・暗くする・残り秒数・資源の
  const stg=U.root.querySelector('.vlo[data-o="storage"]'),pn=s?s.pend.reduce((a,p)=>a+p.n,0):0;
  if(stg){stg.classList.toggle('nt',pn>0);stg.dataset.n=pn}
  const bdo=U.root.querySelector('.vlo[data-o="board"]');if(bdo){let nq=0;try{const bq=s&&VIL.act.board();if(bq)for(const c of QCATS)nq+=bq[c].items.filter(x=>x.state==='done').length}catch(e){}bdo.classList.toggle('nt',nq>0);bdo.dataset.n=nq}
- updBar(s);updGuide(s)}
+ const wso=U.root.querySelector('.vlo[data-o="workshop"]'),wi=s&&VIL.act.workInfo();
+ if(wso){const bt=!!(s&&s.build.workshop);if(!VILA.obj.workshop&&wso.dataset.b!==(bt?'1':'0')){wso.dataset.b=bt?'1':'0';wso.innerHTML=bt?ART.shop:ART.lot}const rd=!!(wi&&wi.state==='ready');wso.classList.toggle('nt',rd);wso.dataset.n=rd?1:0}
+ if(wi&&wi.built){if(U.wk==='run'&&wi.state==='ready'){sound('agari');toast('板材が できたよ!',4000)}U.wk=wi.state}else U.wk=undefined; // 完成の音は、製作中→完成を その場で見たときの1回だけ(読み込み直し・町に入りなおしでは鳴らさない)
+ wkTick(s);updBar(s);updGuide(s)}
 function showToast(){
  if(!U.root)return;let el=U.root.querySelector('.vlmsg');const t=U.toast,pnl=U.root.querySelector('.vlpn');
  if(pnl){if(el)el.remove();const hb=pnl.querySelector('.vphd b'); // 窓が開いているときは、窓の見出しに出す(窓の下の操作ボタンに かぶらない)
@@ -5609,8 +5617,8 @@ function checkStep(){ // 保存できたか分からないとき:状態の確認
  const c=U.chk;if(!c)return;c.tries++;let r='unknown';try{r=VIL.reverify()}catch(e){}
  if(r==='unknown'){U.ctm=setTimeout(checkStep,Math.min(1000+c.tries*500,5000));return}
  U.chk=null;
- if(r==='adopted'){if(c.kind==='gather')fx(c.id,VIL.act.GAIN,0);else if(c.kind==='claim')pnRender();else if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{U.pn={view:'main'};pnRender();if(c.kind==='expand'){U.newSlot=5;setTimeout(()=>{U.newSlot=0;if(U.pn&&U.pn.view==='main')pnRender()},2600)}}sound('pair');refreshGather();toast(MSG_OK,3500)}
- else if(r==='notsaved'){refreshGather();if(U.pn)pnUpd();if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{toast(c.kind==='gather'?MSG_FAIL:c.kind==='expand'?MSG_FAIL_EXP:c.kind==='claim'?MSG_FAIL_Q:MSG_FAIL_MV,6000);sound('miss')}}
+ if(r==='adopted'){if(c.kind==='gather')fx(c.id,VIL.act.GAIN,0);else if(c.kind==='claim')pnRender();else if(c.kind==='build'||c.kind==='start'||c.kind==='collect'){U.pn={view:'work'};pnRender()}else if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{U.pn={view:'main'};pnRender();if(c.kind==='expand'){U.newSlot=5;setTimeout(()=>{U.newSlot=0;if(U.pn&&U.pn.view==='main')pnRender()},2600)}}sound('pair');refreshGather();toast(MSG_OK,3500)}
+ else if(r==='notsaved'){refreshGather();if(U.pn)pnUpd();if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{if(c.kind==='build'||c.kind==='start'||c.kind==='collect'){U.pn={view:'work'};pnRender()}toast(c.kind==='gather'?MSG_FAIL:c.kind==='build'||c.kind==='start'?MSG_FAIL_W:c.kind==='collect'?MSG_FAIL_C:c.kind==='expand'?MSG_FAIL_EXP:c.kind==='claim'?MSG_FAIL_Q:MSG_FAIL_MV,6000);sound('miss')}}
  else{refreshGather();toast(MSG_LOCK,6000)}}
 
 // ===== 5c:保管庫・受け取り待ち・入れかえ・拡張(資材を動かすのは、すべて VIL.act の既存の処理。画面は、えらぶ・見せるだけ) =====
@@ -5636,6 +5644,7 @@ function pnHTML(){
  if(p.view==='recv'||p.view==='swap'){const e=rowOf(s,p.id);if(!e){U.pn={view:'main'};return pnHTML()}}
  const dis=U.chk?' disabled':'';
  if(p.view==='board')return boardHTML(s,dis);
+ if(p.view==='work')return workHTML(s,dis);
  if(p.view==='main'){
   const rows=s.pend.length?s.pend.map(e=>`<div class="vprow" data-pid="${e.id}"><div class="t"><b>${nmH(e.item)}</b> ×${e.n}<small>${T(SRC[e.from]||'')}</small></div><button class="bt" onclick="VILUI.pnGo('recv','${e.id}')">${T('うけとる')}</button></div>`).join(''):`<div class="note">${T('受け取り待ちは ないよ')}</div>`;
   return`<div class="vlpn" data-v="main">${headHTML('保管庫と 受け取り待ち')}<div class="bd"><div class="col"><h4>${T('保管庫')}(${s.store.slots}${T('わく')})</h4><div class="vps"><div class="tiles">${tilesHTML(s)}</div></div></div><div class="col"><h4>${T('受け取り待ち')}(${T('まだ 使えないよ')})</h4><div class="vps rows">${rows}</div></div></div></div>`}
@@ -5655,7 +5664,55 @@ function swapCalc(s){
  if(sel)U.pn.nOut=clampN(U.pn.nOut===null?sel.minOut:U.pn.nOut,sel.minOut,sel.max);
  return{e,n,sp,opts,sel,use,direct:!!(sp&&sp.ok&&sp.direct)}}
 // 数字・ボタンだけを つくり直す(長押し中の「+」「−」ボタンは、作り直さない)
-// ===== 5d:依頼掲示板(依頼の判定・受け取りは、すべて VIL.act の既存の処理。画面は、えらぶ・見せるだけ) =====
+// ===== 5e:作業場(建築・板材づくり。資材の判定も保存も、すべて VIL.act の既存の処理。画面は えらぶ・見せるだけ) =====
+const WSC={wood:6,stone:4},PKC={wood:2};
+const costTxt=c=>Object.keys(c).map(k=>`${vk(NM[k])} ${c[k]}こ`).join('・');
+function missInfo(s,c){ // 足りない資材の案内。受け取り待ちにあるものは「保管庫に うつそう」、なければ「あつめよう」
+ const out=[];let pend=false;
+ for(const k in c){const d=c[k]-s.store.items[k];if(d<=0)continue;
+  if(s.pend.some(e=>e.item===k)){pend=true;out.push(`${NM[k]}は 受け取り待ちに あるよ。保管庫に うつそう。`)}else out.push(`${NM[k]}を あと ${d}こ あつめよう。`)}
+ return{ok:!out.length,txt:out.join(' '),pend}}
+const costRows=(s,c)=>Object.keys(c).map(k=>{const h=s.store.items[k],ok=h>=c[k];return`<div class="vwkc"><span>${nmH(k)}</span><b class="${ok?'ok':'no'}">${h} / ${c[k]} ${ok?'✓':''}</b></div>`}).join('');
+function workHTML(s,dis){
+ const p=U.pn,wi=VIL.act.workInfo(),built=!!s.build.workshop;
+ const st=!built?'unbuilt':wi.state==='idle'?'idle':wi.state==='run'?'run':'ready';p.wst=st;
+ let left,right='';
+ if(!built){const mi=missInfo(s,WSC);
+  left=`<h3>${T('たてる 資材')}</h3>${costRows(s,WSC)}`;
+  if(p.confirm)right=`<div class="vbqs"><h3>${T('作業場を たてますか?')}</h3><div>${T('下の 資材を つかうよ。')}</div><div class="rwd"><b>${esc(costTxt(WSC))}</b></div></div><div class="vwkrow"><button class="bt gr" onclick="VILUI.wkNo()">${T('もどる')}</button><button class="bt or vwkgo"${dis} onclick="VILUI.wkBuildGo()">${T('たてる')}</button></div>`;
+  else right=`<div class="vbqs">${p.noteMsg?`<div class="note">${T(p.noteMsg)}</div>`:''}<div>${T('作業場を たてると、木材から 板材を つくれるよ。')}</div>${mi.ok?'':`<div class="note">${T(mi.txt)}</div>`}</div>${mi.pend?`<button class="bt go" onclick="VILUI.pnGo('main')">${T('保管庫を ひらく')}</button>`:`<button class="bt or go vwkgo" data-off="${mi.ok?0:1}"${mi.ok&&!U.chk?'':' disabled'} onclick="VILUI.wkBuild()">${T('たてる')}</button>`}`}
+ else{left=`<h3>${T('板材づくり')}</h3><div>${T('木材 2こで 板材 1こ')}</div>${costRows(s,PKC)}<div class="vwkc"><span>${nmH('plank')}</span><b>${s.store.items.plank}</b></div>`;
+  if(p.pended)right=`<div class="vbqs"><div class="note">${T('保管庫が いっぱいだから、板材は 受け取り待ちに 入ったよ。なくならないから あんしん!')}</div></div><div class="vwkrow"><button class="bt gr" onclick="VILUI.wkNo()">${T('もどる')}</button><button class="bt" onclick="VILUI.pnGo('main')">${T('保管庫を ひらく')}</button></div>`;
+  else if(st==='run'){const sec=Math.ceil(wi.remain/1000),pc=Math.round((1-wi.remain/VIL.WCD)*100);
+   right=`<div class="vbqs"><div class="pgb"><i class="vwkb" style="width:${pc}%"></i><span class="vwkr">${T('あと')} ${sec} ${T('秒')}</span></div><div class="note">${T('ほかの ばしょに いっても、じかんが たつと できあがるよ')}</div></div><button class="bt gr go" disabled>${T('できるまで まってね')}</button>`}
+  else if(st==='ready')right=`<div class="vbqs"><div class="note">${T('板材が できたよ!')}</div></div><button class="bt or go vwkgo"${dis} onclick="VILUI.wkCollect()">${T('板材を 受け取る')}</button>`;
+  else{const mi=missInfo(s,PKC);
+   right=`<div class="vbqs">${p.noteMsg?`<div class="note">${T(p.noteMsg)}</div>`:''}<div>${T('木材 2こを つかって、60秒で 板材が 1こ できるよ。')}</div>${mi.ok?'':`<div class="note">${T(mi.txt)}</div>`}</div>${mi.pend?`<button class="bt go" onclick="VILUI.pnGo('main')">${T('保管庫を ひらく')}</button>`:`<button class="bt or go vwkgo" data-off="${mi.ok?0:1}"${mi.ok&&!U.chk?'':' disabled'} onclick="VILUI.wkStart()">${T('つくる')}</button>`}`}}
+ return`<div class="vlpn vbq vwk" data-v="work">${headHTML('小さな作業場')}<div class="bd"><div class="col"><div class="vbqd"><div class="vbqs">${left}</div></div></div><div class="col"><div class="vbqd">${right}</div></div></div></div>`}
+function wkTick(s){ // 窓が開いているあいだ、1秒ごとに:状態が変わったら描きなおし、製作中は残り秒数だけ更新
+ const p=U.pn;if(!p||p.view!=='work'||!s)return;const wi=VIL.act.workInfo(),st=!s.build.workshop?'unbuilt':wi.state==='idle'?'idle':wi.state==='run'?'run':'ready';
+ if(st!==p.wst&&!p.pended){pnRender();return}
+ if(st==='run'){const r=U.root.querySelector('.vwkr'),b=U.root.querySelector('.vwkb');if(r)r.textContent=vk('あと')+' '+Math.ceil(wi.remain/1000)+' '+vk('秒');if(b)b.style.width=Math.round((1-wi.remain/VIL.WCD)*100)+'%'}}
+function wkNo(){if(!U.pn||U.pn.view!=='work')return;U.pn={view:'work'};pnRender()}
+function wkBuild(){const p=U.pn;if(!p||p.view!=='work'||U.chk)return;p.confirm=true;p.noteMsg=null;pnRender()} // 確認の画面を出すだけ。資材は つかわない
+function wkRes(r,kind,onOk){ // 3つの操作の結果を、同じ方法で さばく(保存失敗・結果不明・競合)
+ if(r.ok){onOk(r);return}
+ switch(r.reason){
+  case'unknown':case'unsure':startCheck(kind,kind);return;
+  case'busy':return;
+  case'adopted':U.pn={view:'work'};pnRender();refreshGather();toast(MSG_OK,3500);return;
+  case'stale':U.pn={view:'work'};pnRender();refreshGather();toast(MSG_STALE,5000);return;
+  case'locked':refreshGather();toast(MSG_LOCK,6000);return;
+  case'save':case'error':U.opT=0;U.pn={view:'work'};pnRender();toast(kind==='collect'?MSG_FAIL_C:MSG_FAIL_W,6000);sound('miss');return;
+  default:U.opT=0;U.pn={view:'work'};pnRender();refreshGather();toast(MSG_RETRY,5000)}}
+function wkBuildGo(){const p=U.pn;if(!p||p.view!=='work'||!p.confirm||!opGate())return;
+ wkRes(VIL.act.build(),'build',()=>{sound('agari');U.pn={view:'work',noteMsg:'作業場が たったよ!'};pnRender();refreshGather();toast('作業場が たったよ!',3500)})}
+function wkStart(){const p=U.pn;if(!p||p.view!=='work'||!opGate())return;
+ wkRes(VIL.act.startPlank(),'start',()=>{sound('pair');U.pn={view:'work'};pnRender();refreshGather()})}
+function wkCollect(){const p=U.pn;if(!p||p.view!=='work'||!opGate())return;
+ wkRes(VIL.act.collectPlank(),'collect',r=>{sound('pair');U.pn={view:'work',pended:(r.pended|0)>0,noteMsg:'板材を 受け取ったよ'};pnRender();refreshGather();toast((r.pended|0)>0?'板材は 受け取り待ちに 入ったよ':'板材を 受け取ったよ',3500)})}
+
+// ===== 5d:依頼掲示板 / 5e:作業場(建築・板材づくり)(依頼の判定・受け取りは、すべて VIL.act の既存の処理。画面は、えらぶ・見せるだけ) =====
 const QCATS=['story','normal','learn'],QLAB={story:'物語',normal:'通常',learn:'学習'};
 const rwdH=r=>Object.keys(r||{}).map(k=>`<i class="${IK[k]}" style="display:inline-block"></i>${esc(vk(k==='crystal'?'特別な結晶':NM[k]))} ×${r[k]}`).join(' ');
 function boardHTML(s,dis){
@@ -5706,6 +5763,7 @@ function pnUpd(){
  const p=U.pn,root=U.root;if(!p||!root)return;const s=VIL.get();if(!s)return;
  const q=sel=>root.querySelector(sel),go=q('#pngo'),note=q('#pnnote'),stn=q('.stn'),bs=root.querySelectorAll('.stb');
  const lock=!!U.chk;
+ if(p.view==='work'){root.querySelectorAll('.vwkgo').forEach(b=>{b.disabled=lock||b.dataset.off==='1'});return}
  if(p.view==='board'){root.querySelectorAll('.vbqgo').forEach(b=>{b.disabled=lock});return}
  if(p.view==='recv'){const c=recvCalc(s);if(!c)return;stn.textContent=c.n;
   note.textContent=vk(c.ad>0?`あと ${c.ad}こ 入るよ`:'いま 保管庫は いっぱい。入れかえが ひつようだよ。');
@@ -5789,6 +5847,10 @@ function guideInfo(s){
   if(it.direct)return{m:`${nm}が 受け取り待ちに あるよ。保管庫へ 移そう。`,g:`目標: 受け取り待ちの ${nm}を 保管庫へ 移そう`,open:'main'};
   if(it.swap)return{m:`保管庫が いっぱいだよ。${NM[it.swap.item]}を 受け取り待ちへ 戻して、${nm}を 受け取ろう。`,g:`目標: ${nm}を 保管庫へ 入れかえよう`,open:'main'};
   return{m:`${nm}が いっぱいで 受け取れないよ。${nm}を 使うと 空きが できるよ。`,g:`目標: ${nm}を 使って 空きを 作ろう`,open:'main'}}
+ if(h&&h.type==='build')return{m:'資材が そろったよ。作業場を たてよう。',g:'目標: 作業場を たてよう',open:'work'};
+ if(h&&h.type==='start')return{m:'作業場で 板材を つくろう。木材 2こで 板材 1こ できるよ。',g:'目標: 板材を 1こ つくろう',open:'work'};
+ if(h&&h.type==='wait')return{m:`板材を つくっているよ。あと ${Math.ceil(h.remain/1000)} 秒。`,g:'目標: 板材を 1こ つくろう',open:'work'};
+ if(h&&h.type==='collect')return{m:'板材が できたよ! 作業場で 受け取ろう。',g:'目標: 作業場で 板材を 受け取ろう',open:'work'};
  if(h&&h.type==='board')return{m:'依頼掲示板を 見てみよう。',g:'目標: 依頼掲示板を ひらこう',open:'board'};
  if(h&&h.type==='gather'&&h.goal)return{m:`木材を あと ${Math.max(0,h.goal-h.p)}こ あつめよう。木を タップしてね。`,g:`目標: 木材を ぜんぶで ${h.goal}こ (${h.p}/${h.goal})`,open:null};
  if(h&&h.type==='claim')return{m:'やったね! 木材が あつまったよ。掲示板で ごほうびを 受け取ろう。',g:'目標: 掲示板で ごほうびを 受け取ろう',open:'board'};
@@ -5814,7 +5876,7 @@ function openTest(){
  if(U.open)return true;
  if(!VIL.setNamespace('Test'))return false; // すでに本番の名前で初期化されていたら、切り替えられない→開かない(本番データを守る)
  ensureCss();killOpening();
- VIL.init();U.mode='test';U.open=true;clearInterval(U.tick);U.tick=setInterval(refreshGather,1000);
+ VIL.init();U.mode='test';U.open=true;U.wk=undefined;clearInterval(U.tick);U.tick=setInterval(refreshGather,1000);
  const app=document.getElementById('app');if(app)app.style.display='none';
  U.root=document.createElement('div');U.root.id='vilroot';document.body.appendChild(U.root);
  draw();return true}
@@ -5827,8 +5889,8 @@ window.VILUI={
  openTest,draw,
  goHome:close,
  goBack(){if(U.pn)pnClose();else close()}, // 窓が開いているときは窓を閉じる。閉じているときだけホームへ
- pnOpen,boardOpen,bqCat,bqSel,bqClaim,pnClose,pnGo,pnAll,pnOut,pnDo,hold,hstop:stopHold,stepK,get pn(){return U.pn},guideInfo:()=>guideInfo(VIL.get()),
- tap(id){U.taps[id]=(U.taps[id]||0)+1;if(GITEM[id])gatherTap(id);else if(id==='storage')pnOpen('main');else if(id==='board')boardOpen()}, // 5b:木・岩は採集(判定はVIL.gather)。ほかは5aのまま(記録だけ)
+ pnOpen,boardOpen,wkNo,wkBuild,wkBuildGo,wkStart,wkCollect,bqCat,bqSel,bqClaim,pnClose,pnGo,pnAll,pnOut,pnDo,hold,hstop:stopHold,stepK,get pn(){return U.pn},guideInfo:()=>guideInfo(VIL.get()),
+ tap(id){U.taps[id]=(U.taps[id]||0)+1;if(GITEM[id])gatherTap(id);else if(id==='storage')pnOpen('main');else if(id==='board')boardOpen();else if(id==='workshop')pnOpen('work')}, // 5b:木・岩は採集(判定はVIL.gather)。ほかは5aのまま(記録だけ)
  refresh:refreshGather,get chk(){return U.chk},get toastText(){return U.toast&&U.toast.text},
  tp(n){U.tp=n;if(n===0)U.msg='';draw()},
  dbgT(){U.dbg=!U.dbg;draw()},
