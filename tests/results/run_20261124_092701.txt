@@ -1,0 +1,85 @@
+対象: /mnt/user-data/outputs/index.html
+SHA-256: 622bc42f5d351ba4e8ace256c02836ff109a25065e049a662e31ce810f0587f9
+サイズ: 17954331 bytes
+node: v22.23.5
+playwright: 1.63.0
+------ vil_5e_workshop.js
+PASS A 建築前:不足表示・「たてる」停止・確認にも進めない
+PASS A2 不足のまま実行しても何も消費しない
+PASS B1 確認画面(たてますか?・もどる/たてる)・資材も保存も変わらない
+PASS B2 もどる:キャンセルで消費なし
+PASS B3 たてる:木材6・石材4を消費・実績・建築済み表示・見た目が変わる
+PASS B4 ページエラー0
+PASS C1 製作開始:木材2消費・60秒・「ほかの ばしょに いっても…」と残り時間
+PASS C2 製作中は2件目・早い受け取りは不可
+PASS C3 完成:作業場に赤い印・音1回(更新しても増えない)
+PASS C4 受け取り:板材+1・実績・空きに戻る・赤い印が消える
+PASS D 満杯:板材は受け取り待ち(作業場から)・総数+1・説明と「保管庫を ひらく」
+PASS E1 完成済みで再読み込み:印あり・音なし
+PASS F-build 保存失敗:状態不変・失敗の案内
+PASS F-build やり直しで1回だけ成功
+PASS G-build-書けた 結果不明:確認中表示・停止・くり返さない
+PASS G-build-書けた 再読み込み後も整合(1回分のみ)
+PASS G-build-書けた エラー0
+PASS G-build-書けず 結果不明:確認中表示・停止・くり返さない
+PASS G-build-書けず 再読み込み後も整合(未実行)
+PASS G-build 未実行から再実行して1回だけ成功
+PASS G-build-書けず エラー0
+PASS F-start 保存失敗:状態不変・失敗の案内
+PASS F-start やり直しで1回だけ成功
+PASS G-start-書けた 結果不明:確認中表示・停止・くり返さない
+PASS G-start-書けた 再読み込み後も整合(1回分のみ)
+PASS G-start-書けた エラー0
+PASS G-start-書けず 結果不明:確認中表示・停止・くり返さない
+PASS G-start-書けず 再読み込み後も整合(未実行)
+PASS G-start 未実行から再実行して1回だけ成功
+PASS G-start-書けず エラー0
+PASS F-collect 保存失敗:状態不変・失敗の案内
+PASS F-collect やり直しで1回だけ成功
+PASS G-collect-書けた 結果不明:確認中表示・停止・くり返さない
+PASS G-collect-書けた 再読み込み後も整合(1回分のみ)
+PASS G-collect-書けた エラー0
+PASS G-collect-書けず 結果不明:確認中表示・停止・くり返さない
+PASS G-collect-書けず 再読み込み後も整合(未実行)
+PASS G-collect 未実行から再実行して1回だけ成功
+PASS G-collect-書けず エラー0
+PASS H 連打5回:1件・木材2のみ
+PASS I 2画面同時の建築:1回だけ
+PASS J1 案内:作業場を たてよう
+PASS J2 ひらくで作業場
+PASS J3 建築後:木材の採集案内
+PASS J4 板材を つくろう
+PASS J5 製作中の案内(あと N 秒)
+PASS J6 完成の案内
+PASS K-不足 ひらがな:漢字なし
+PASS K-そろう ひらがな:漢字なし
+PASS K-確認 ひらがな:漢字なし
+PASS K-建築直後 ひらがな:漢字なし
+PASS K-つくれる ひらがな:漢字なし
+PASS K-製作中 ひらがな:漢字なし
+PASS K-完成 ひらがな:漢字なし
+PASS K-受け取り待ち ひらがな:漢字なし
+PASS S-640x300 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-640x300 エラー0
+PASS S-640x300 ひらがな 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-640x300 ひらがな エラー0
+PASS S-780x330 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-780x330 エラー0
+PASS S-780x330 ひらがな 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-780x330 ひらがな エラー0
+PASS S-915x412 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-915x412 エラー0
+PASS S-915x412 ひらがな 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-915x412 ひらがな エラー0
+PASS S-1280x720 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-1280x720 エラー0
+PASS S-1280x720 ひらがな 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-1280x720 ひらがな エラー0
+PASS S-1910x830 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-1910x830 エラー0
+PASS S-1910x830 ひらがな 8状態:切れ・重なり・隠れなし/40px以上/11px以上/内容が切れない
+PASS S-1910x830 ひらがな エラー0
+PASS N 本番キー・学習データは1文字も変わらない
+failed: 0 / 76
+------ vil_diff_compare.js (OLD=/home/claude/base/index_5d.html)
+scenarios 22 differences 0 errs5e 0

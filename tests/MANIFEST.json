@@ -1,0 +1,26 @@
+{
+  "target": {
+    "file": "index.html",
+    "sha256": "622bc42f5d351ba4e8ace256c02836ff109a25065e049a662e31ce810f0587f9",
+    "bytes": 17954331,
+    "stage": "町づくり5e 完成版(GitHub未アップロード)"
+  },
+  "base_for_compare": {
+    "stage": "5d 完成版",
+    "commit": "94eeb4a0c32ffb06207ca1262e27110711f5e71b",
+    "sha256": "968cdf2e604d30d62ddcd91a4d0957e2aa0eddbc0b6fb08ff6fcb0a7fdc1eafd",
+    "bytes": 17944248
+  },
+  "env": {
+    "node": "v22.23.5",
+    "playwright": "1.63.0",
+    "browser": "Chromium (Playwright)",
+    "os": "Linux"
+  },
+  "results": {
+    "vil_5e_workshop.js": "76 / 76 合格",
+    "vil_diff_compare.js": "22場面 差異0",
+    "log": "run_20261124_092701.txt"
+  },
+  "note": "旧テスト912項目は環境入れ替えで消失。RECOVERY_STATUS.md 参照。実機スマホ未確認。"
+}
