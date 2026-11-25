@@ -5356,7 +5356,7 @@ addEventListener('resize',rotCheck);addEventListener('orientationchange',rotChec
 // ===== 町づくり 5a:画面の土台 / 5b:風景の中での採集 / 5c:保管庫・受け取り待ち・入れかえ・拡張(資材を動かす処理は、すべて vil-core の VIL.act) =====
 // 入口は URL の末尾 #vil だけ(テスト入口)。保存先は elemVilTest。本番の elemVil と学習データは、読まず・書かない。
 const FR=2.1327; // 風景の枠の縦横比(横/縦)
-const U={open:false,mode:'none',dbg:false,tp:0,small:false,msg:'',taps:{},root:null,last:{},chk:null,toast:null,tick:0,ctm:0,ttm:0,pn:null,opT:0,ht:0,hr:0,newSlot:0};
+const U={open:false,mode:'none',dbg:false,tp:0,small:false,msg:'',taps:{},root:null,last:{},chk:null,toast:null,tick:0,ctm:0,ttm:0,pn:null,opT:0,ht:0,hr:0,newSlot:0,fin:null};
 const GP=['wood1','wood2','stone1','stone2'],GITEM={wood1:'wood',wood2:'wood',stone1:'stone',stone2:'stone'},GATE=300; // 5b:採集点(vil-core の POINTS と同じ)。GATE=同じ点の連続タップを無視する ms
 const VILA={bg:null,obj:{}}; // 正式素材の入れ口。null なら仮の絵。素材を入れても、位置とタップの範囲は変わらない
 
@@ -5364,7 +5364,12 @@ const VILA={bg:null,obj:{}}; // 正式素材の入れ口。null なら仮の絵�
 const MSG_FAIL='うまく保存できなかったよ。資材は増えていないから、もう一度ためしてね。',MSG_CHK='保存できたか確認しているよ',MSG_OK='保存できていたよ',MSG_STALE='町のデータが新しくなったよ。もう一度ためしてね。',MSG_LOCK='町のデータを確認できなかったよ。',MSG_FULL='保管庫がいっぱい → 受け取り待ち',MSG_FAIL_MV='うまく保存できなかったよ。資材はそのままだよ。もう一度ためしてね。',MSG_FAIL_EXP='うまく保存できなかったよ。資材は使われていないよ。もう一度ためしてね。',MSG_RETRY='状態が かわったよ。もう一度 えらんでね。',MSG_NOOPT='入れかえできる 資材が ないよ。同じ 資材どうしは 入れかえられないよ。個数を 減らすか、資材を 使おう。',MSG_EXPOK='ひろがったよ!';
 const MSG_FAIL_Q='うまく保存できなかったよ。ごほうびは 増えていないから、もう一度ためしてね。';
 const MSG_FAIL_W='うまく保存できなかったよ。資材は 使っていないから、もう一度ためしてね。',MSG_FAIL_C='うまく保存できなかったよ。板材は まだ 受け取っていないから、もう一度ためしてね。';
-const VQ=[[MSG_FAIL_W,'うまくほぞんできなかったよ。しざいは つかっていないから、もういちどためしてね。'],[MSG_FAIL_C,'うまくほぞんできなかったよ。はんざいは まだ うけとっていないから、もういちどためしてね。'.replace('はんざい','いたざい')],
+const MSG_FAIL_F='うまく保存できなかったよ。もう一度「つぎへ」を おしてね。';
+const FINL=['依頼掲示板を 見た','はじめての依頼を 達成','作業場を たてた','板材を つくった','保管庫を 5わくにした'];
+const VQ=[[MSG_FAIL_F,'うまくほぞんできなかったよ。もういちど「つぎへ」を おしてね。'],['依頼掲示板を 見た','いらいけいじばんを みた'],['はじめての依頼を 達成','はじめての いらいを たっせい'],['作業場を たてた','さぎょうばを たてた'],['板材を つくった','いたざいを つくった'],['保管庫を 5わくにした','ほかんこを 5わくに した'],
+ ['町づくり','まちづくり'],['一歩','いっぽ'],['よく がんばったね！ これから、どんな町に なっていくのか たのしみだね。','よく がんばったね！ これから、どんな まちに なっていくのか たのしみだね。'],['通常依頼・学習依頼が 解放されました！','つうじょういらい・がくしゅういらいが かいほうされました！'],
+ ['通常・学習の 依頼が ひらいたよ。掲示板を 見てみよう！','つうじょう・がくしゅうの いらいが ひらいたよ。けいじばんを みてみよう！'],['見るだけだよ。ごほうびは もらえないよ。','みるだけだよ。ごほうびは もらえないよ。'],['見るだけ','みるだけ'],['目標: 掲示板を 見てみよう','もくひょう: けいじばんを みてみよう'],
+ [MSG_FAIL_W,'うまくほぞんできなかったよ。しざいは つかっていないから、もういちどためしてね。'],[MSG_FAIL_C,'うまくほぞんできなかったよ。はんざいは まだ うけとっていないから、もういちどためしてね。'.replace('はんざい','いたざい')],
  ['板材を 受け取る','板材を うけとる'],['板材を 受け取ったよ','板材を うけとったよ'],['板材が できたよ! 作業場で 受け取ろう。','板材が できたよ! 作業場で うけとろう。'],['目標: 作業場で 板材を 受け取ろう','目標: 作業場で 板材を うけとろう'],
  ['資材が そろったよ。','しざいが そろったよ。'],['秒','びょう'],['資材','しざい'],['作業場','さぎょうば'],['下の','したの'],[MSG_FAIL_Q,'うまくほぞんできなかったよ。ごほうびはふえていないから、もういちどためしてね。'],
  ['はじめの 5つの 目標を おえると ひらくよ。','はじめの 5つの もくひょうを おえると ひらくよ。'],
@@ -5415,6 +5420,25 @@ const BGSVG=`<svg viewBox="0 0 1000 469" preserveAspectRatio="xMidYMid slice"><r
 <g class="orb"><circle cx="120" cy="380" r="6" fill="#b8f5ff"/><circle cx="880" cy="350" r="6" fill="#b8f5ff"/><circle cx="520" cy="430" r="5" fill="#ffe9a8"/><circle cx="260" cy="150" r="5" fill="#ffe9a8"/></g></svg>`;
 
 const CSS=`
+
+.vlfin{position:absolute;inset:0;z-index:40;background:rgba(10,14,24,.52);display:flex;align-items:center;justify-content:center;text-align:center;color:#412402;font-size:clamp(11px,3.3cqh,17px);line-height:1.3;overflow:hidden}
+.vlfin .fc{position:relative;width:min(88%,150cqh);max-height:94%;box-sizing:border-box;background:#fff8e6;border:3px solid #e2a21b;border-radius:16px;padding:clamp(5px,1.8cqh,12px) clamp(10px,2.4cqw,22px);display:flex;flex-direction:column;gap:clamp(3px,1.1cqh,8px);box-shadow:0 0 0 4px rgba(255,236,160,.55),0 0 28px 6px rgba(255,214,90,.55)}
+.vlfin h2{margin:0;font-size:clamp(13px,4cqh,22px);color:#7a4a05;font-weight:800;line-height:1.15}
+.vlfin h2 em{font-style:normal;font-size:1.5em;color:#e8590c;text-shadow:0 2px 0 #fff,0 0 10px #ffd966;display:inline-block;animation:vfpop .7s ease-out both}
+.vlfin ul{list-style:none;margin:0 auto;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:clamp(1px,.6cqh,4px) clamp(8px,2cqw,20px);text-align:left;font-weight:700;font-size:max(11px,.95em)}
+.vlfin li:before{content:"✓ ";color:#2a8a3a;font-weight:900}
+.vlfin .fu{font-weight:800;color:#a14a00;background:#fff0c0;border-radius:10px;padding:clamp(2px,.7cqh,5px) 8px;font-size:max(11px,1em)}
+.vlfin .fl{display:flex;align-items:center;gap:8px;text-align:left;background:#fdebd0;border-radius:12px;padding:clamp(2px,.8cqh,6px) 8px;font-size:max(11px,1em)}
+.vlfin .fl img{flex:none;height:clamp(26px,9cqh,48px);width:auto;border-radius:50%}
+.vlfin .fm{min-height:1.3em;color:#a32d2d;font-weight:800;font-size:max(11px,.95em)}.vlfin .fm:empty{display:none}
+.vlfin .fb{align-self:center;min-height:44px;min-width:40%;border:0;border-radius:12px;background:#f3a712;color:#412402;font:inherit;font-weight:800;font-size:max(13px,1.1em);cursor:pointer;box-shadow:0 3px 0 #b97a05}
+.vlfin .fb:disabled{background:#cfc6ad;box-shadow:none;cursor:default}
+.vlfin .vfs{position:absolute;width:var(--s,14px);height:var(--s,14px);background:#ffd43b;clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);animation:vftw 2.4s ease-in-out infinite;animation-delay:var(--d,0s);pointer-events:none}
+@keyframes vftw{0%,100%{opacity:.25;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.1) rotate(20deg)}}
+@keyframes vfpop{0%{transform:scale(.4);opacity:0}70%{transform:scale(1.15);opacity:1}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.vlfin .vfs,.vlfin h2 em{animation:none}}
+@container (max-height:340px){.vlfin .vfs.x{display:none}}
+.vbq .vbqr.rv .mk{color:#e2a21b}.vbq .vbrv li{margin-bottom:3px;list-style:none}.vbq .vbrv li:before{content:"✓ ";color:#2a8a3a;font-weight:900}.vbq .vbrv ul{margin:2px 0 0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:0 8px}.vbq .vbrv li{margin-bottom:0}
 .vbq .vwkrow{flex:none;display:flex;gap:6px}.vbq .vwkrow .bt{flex:1;width:auto}.vbq .vwkc{display:flex;justify-content:space-between;gap:6px;align-items:center;min-height:1.6em}.vbq .vwkc b.ok{color:#2a8a3a}.vbq .vwkc b.no{color:#c0392b}
 .vbq .bd{grid-template-columns:40% 1fr;gap:6px;padding:4px 8px}
 .vbq .vbqtabs{display:flex;gap:4px;flex:none;margin-bottom:4px}
@@ -5579,7 +5603,7 @@ function refreshGather(){ // 光の輪・暗くする・残り秒数・資源の
  const wso=U.root.querySelector('.vlo[data-o="workshop"]'),wi=s&&VIL.act.workInfo();
  if(wso){const bt=!!(s&&s.build.workshop);if(!VILA.obj.workshop&&wso.dataset.b!==(bt?'1':'0')){wso.dataset.b=bt?'1':'0';wso.innerHTML=bt?ART.shop:ART.lot}const rd=!!(wi&&wi.state==='ready');wso.classList.toggle('nt',rd);wso.dataset.n=rd?1:0}
  if(wi&&wi.built){if(U.wk==='run'&&wi.state==='ready'){sound('agari');toast('板材が できたよ!',4000)}U.wk=wi.state}else U.wk=undefined; // 完成の音は、製作中→完成を その場で見たときの1回だけ(読み込み直し・町に入りなおしでは鳴らさない)
- wkTick(s);updBar(s);updGuide(s)}
+ wkTick(s);updBar(s);updGuide(s);finDraw()}
 function showToast(){
  if(!U.root)return;let el=U.root.querySelector('.vlmsg');const t=U.toast,pnl=U.root.querySelector('.vlpn');
  if(pnl){if(el)el.remove();const hb=pnl.querySelector('.vphd b'); // 窓が開いているときは、窓の見出しに出す(窓の下の操作ボタンに かぶらない)
@@ -5617,6 +5641,7 @@ function checkStep(){ // 保存できたか分からないとき:状態の確認
  const c=U.chk;if(!c)return;c.tries++;let r='unknown';try{r=VIL.reverify()}catch(e){}
  if(r==='unknown'){U.ctm=setTimeout(checkStep,Math.min(1000+c.tries*500,5000));return}
  U.chk=null;
+ if(c.kind==='seen'){finAfterCheck(r);return}
  if(r==='adopted'){if(c.kind==='gather')fx(c.id,VIL.act.GAIN,0);else if(c.kind==='claim')pnRender();else if(c.kind==='build'||c.kind==='start'||c.kind==='collect'){U.pn={view:'work'};pnRender()}else if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{U.pn={view:'main'};pnRender();if(c.kind==='expand'){U.newSlot=5;setTimeout(()=>{U.newSlot=0;if(U.pn&&U.pn.view==='main')pnRender()},2600)}}sound('pair');refreshGather();toast(MSG_OK,3500)}
  else if(r==='notsaved'){refreshGather();if(U.pn)pnUpd();if(c.kind==='board'){U.pn={view:'board'};pnRender()}else{if(c.kind==='build'||c.kind==='start'||c.kind==='collect'){U.pn={view:'work'};pnRender()}toast(c.kind==='gather'?MSG_FAIL:c.kind==='build'||c.kind==='start'?MSG_FAIL_W:c.kind==='collect'?MSG_FAIL_C:c.kind==='expand'?MSG_FAIL_EXP:c.kind==='claim'?MSG_FAIL_Q:MSG_FAIL_MV,6000);sound('miss')}}
  else{refreshGather();toast(MSG_LOCK,6000)}}
@@ -5717,13 +5742,15 @@ const QCATS=['story','normal','learn'],QLAB={story:'物語',normal:'通常',lear
 const rwdH=r=>Object.keys(r||{}).map(k=>`<i class="${IK[k]}" style="display:inline-block"></i>${esc(vk(k==='crystal'?'特別な結晶':NM[k]))} ×${r[k]}`).join(' ');
 function boardHTML(s,dis){
  const p=U.pn,b=VIL.act.board();if(!b)return`<div class="vlpn vbq" data-v="board">${headHTML('依頼掲示板')}<div class="bd"><div class="note">${T(MSG_LOCK)}</div></div></div>`;
- const ck=QCATS.indexOf(p.cat)>=0?p.cat:'story',cat=b[ck],its=cat.items,sel=its.find(x=>x.id===p.sel)||its[0];
+ const ck=QCATS.indexOf(p.cat)>=0?p.cat:'story',cat=b[ck],its=cat.items,rvOn=ck==='story'&&s.tut.done===true,isRv=rvOn&&p.sel==='review',sel=isRv?null:(its.find(x=>x.id===p.sel)||its[0]);
  const tabs=QCATS.map(c=>{const o=b[c],nw=o.items.some(x=>x.state==='done');return`<button class="vbqt${c===ck?' on':''}${o.open?'':' lk'}" data-cat="${c}" aria-label="${T(QLAB[c])}" onclick="VILUI.bqCat('${c}')">${o.open?'':'🔒 '}${T(QLAB[c])}${nw?'<span class="dot"></span>':''}</button>`}).join('');
  const list=its.map(x=>{const m=x.state==='claimed'?'<span class="mk d">✓</span>':x.state==='done'?'<span class="mk n">!</span>':'<span class="mk">▶</span>';
   const sub=x.state==='claimed'?T('受け取り済み'):x.state==='done'?T('達成! 受け取れるよ'):`${x.p} / ${x.goal}`;
   return`<button class="vbqr${sel&&x.id===sel.id?' sel':''}" data-q="${x.id}" onclick="VILUI.bqSel('${x.id}')">${m}<div class="t">${T(x.title)}<small>${sub}</small></div></button>`}).join('');
+ const rvRow=rvOn?`<button class="vbqr rv${isRv?' sel':''}" data-q="review" onclick="VILUI.bqSel('review')"><span class="mk">★</span><div class="t">${T('チュートリアルのふりかえり')}<small>${T('見るだけ')}</small></div></button>`:'';
  let det;
- if(!cat.open)det=`<div class="vbqs"><h3>🔒 ${T(QLAB[ck])}${T('依頼')}</h3><div class="note">${T('はじめの 5つの 目標を おえると ひらくよ。')}</div></div>`;
+ if(isRv)det=`<div class="vbqs vbrv"><h3>${T('チュートリアルのふりかえり')}</h3><div class="note">${T('見るだけだよ。ごほうびは もらえないよ。')}</div><ul>${FINL.map((t,i)=>s.tut.ach[['arrive','quest','build','plank','expand'][i]]?`<li>${T(t)}</li>`:'').join('')}</ul></div>`;
+ else if(!cat.open)det=`<div class="vbqs"><h3>🔒 ${T(QLAB[ck])}${T('依頼')}</h3><div class="note">${T('はじめの 5つの 目標を おえると ひらくよ。')}</div></div>`;
  else if(!sel)det=`<div class="vbqs"><h3>${T(QLAB[ck])}${T('依頼')}</h3><div class="note">${T('この 依頼は 準備中だよ')}</div></div>`;
  else{const d=p.done&&p.done.id===sel.id?p.done:null;
   det=`<h3>${T(sel.title)}${sel.state==='claimed'?`<span class="tg">${T('受け取り済み')}</span>`:''}</h3>`;
@@ -5735,7 +5762,7 @@ function boardHTML(s,dis){
   if(d&&d.pended>0)det+=`<button class="bt go" onclick="VILUI.pnGo('main')">${T('保管庫を ひらく')}</button>`;
   else if(sel.state==='done')det+=`<button class="bt or go vbqgo" data-id="${sel.id}"${dis} onclick="VILUI.bqClaim('${sel.id}')">${T('ごほうびを 受け取る')}</button>`;
   else if(sel.state==='open')det+=`<button class="bt gr go" disabled>${T('まだ 受け取れないよ')}</button>`}
- return`<div class="vlpn vbq" data-v="board">${headHTML('依頼掲示板')}<div class="bd"><div class="col"><div class="vbqtabs">${tabs}</div><div class="vps">${list}</div></div><div class="col"><div class="vbqd">${det}</div></div></div></div>`}
+ return`<div class="vlpn vbq" data-v="board">${headHTML('依頼掲示板')}<div class="bd"><div class="col"><div class="vbqtabs">${tabs}</div><div class="vps">${list}${rvRow}</div></div><div class="col"><div class="vbqd">${det}</div></div></div></div>`}
 function boardOpen(){
  if(!U.open)return;if(U.chk){toast(MSG_CHK);return}stopHold();
  const r=VIL.act.openBoard(); // 初めて開いたときだけ「到着」を保存。2回目からは何も書かない
@@ -5794,7 +5821,7 @@ function pnUpd(){
 function pnRender(){
  if(!U.root)return;const old=U.root.querySelector('.vlpn'),h=pnHTML();
  U.root.querySelector('.vls').classList.toggle('pnopen',!!U.pn);
- if(!h){if(old)old.remove();showToast();return}
+ if(!h){if(old)old.remove();showToast();finDraw();return} // 5f:窓を閉じた直後に、未確認の完了カードを出す
  if(old)old.outerHTML=h;else{const md=U.root.querySelector('.vlmd');md.insertAdjacentHTML('beforebegin',h)}
  pnUpd();showToast()}
 function pnOpen(view){if(!U.open)return;if(view==='board')return boardOpen();if(U.chk){toast(MSG_CHK);return}stopHold();U.pn={view:view||'main'};pnRender()}
@@ -5837,6 +5864,50 @@ function storeDone(r,kind,info){
   case'save':case'error':U.opT=0;toast(kind==='expand'?MSG_FAIL_EXP:MSG_FAIL_MV,6000);sound('miss');pnUpd();return;
   default: // 状態がかわっていた(行が消えた・入る数がかわった など)。何も動いていない。選びなおしてもらう
    U.opT=0;U.pn={view:'main'};pnRender();refreshGather();toast(MSG_RETRY,5000)}}
+
+// ===== 5f:チュートリアル完了演出(確認済みの印 tut.seen は、vil-core の VIL.commit で書く。vil-core は変えない) =====
+// tut.done=町づくりの進行条件(従来どおり)。tut.seen=演出を見たかどうか(進行条件には使わない)。seen===true のときだけ「確認済み」
+const finSeen=s=>!!s&&s.tut&&s.tut.seen===true;
+function finOk(s){ // 演出を出してよいか:完了していて未確認、保存の確認中ではない、窓が開いていない
+ if(!s||!s.tut||s.tut.done!==true||finSeen(s))return false;
+ let st;try{st=VIL.status()}catch(e){return false}
+ if(!st||st.locked||st.unsure)return false;
+ return !U.pn&&!U.chk}
+function finHTML(s){
+ const ach=s&&s.tut?s.tut.ach:{},K=['arrive','quest','build','plank','expand'];
+ const stars=[[6,12,16,0],[12,70,12,.5],[88,10,18,.9],[94,64,12,1.4],[3,48,11,1.8],[48,3,12,.3],[78,92,13,1.1],[20,90,12,2],[60,95,11,.7]].map((a,i)=>`<i class="vfs${i>4?' x':''}" style="left:${a[0]}%;top:${a[1]}%;--s:${a[2]}px;--d:${a[3]}s"></i>`).join('');
+ const luna=(typeof LUNA_IMGS!=='undefined'&&LUNA_IMGS[0])?`<img src="${LUNA_IMGS[0]}" alt="">`:'';
+ return`<div class="vlfin" role="dialog" aria-label="${T('町づくり はじめの一歩 クリア！')}">${stars}<div class="fc"><h2>${T('町づくり')} ${T('はじめの一歩')} <em>${T('クリア')}！</em></h2>
+<ul>${FINL.map((t,i)=>ach[K[i]]===false?'':`<li>${T(t)}</li>`).join('')}</ul>
+<div class="fu">${T('通常依頼・学習依頼が 解放されました！')}</div>
+<div class="fl">${luna}<div>${T('よく がんばったね！ これから、どんな町に なっていくのか たのしみだね。')}</div></div>
+<div class="fm" role="status"></div><button class="fb" onclick="VILUI.finNext()">${T('つぎへ')}</button></div></div>`}
+function finDraw(){ // カードの表示・更新(出ていれば作り直さない)。出すときだけ、音を1回
+ if(!U.root)return;const s=VIL.get(),f=U.fin;let el=U.root.querySelector('.vlfin');
+ if(f&&f.open&&finSeen(s)){finClose();return}
+ if(!f||!f.open){if(el)el.remove();if(!f&&finOk(s)){U.fin={open:true,busy:false,msg:'',snd:false};return finDraw()}return}
+ if(!el){U.root.querySelector('.vls').insertAdjacentHTML('beforeend',finHTML(s));el=U.root.querySelector('.vlfin')}
+ if(!f.snd){f.snd=true;sound('agari')} // 同じ表示の間は1回だけ(つくり直し・言語切替では鳴らさない)
+ const fm=el.querySelector('.fm'),b=el.querySelector('.fb'),m=U.chk&&U.chk.kind==='seen'?MSG_CHK:f.msg;
+ const t=m?vk(m):'';if(fm&&fm.textContent!==t)fm.textContent=t;if(b)b.disabled=!!(U.chk||f.busy)}
+function finClose(){U.fin=null;if(U.root){const el=U.root.querySelector('.vlfin');if(el)el.remove()}}
+function finWrite(){return VIL.commit(s=>{if(s.tut.done!==true||s.tut.seen===true)return false;s.tut.seen=true})}
+function finNext(){
+ const f=U.fin;if(!f||!f.open||f.busy||U.chk)return;if(!opGate())return;
+ f.busy=true;f.msg='';let r;try{r=finWrite();if(!r.ok&&r.reason==='stale')r=finWrite()}catch(e){r={ok:false,reason:'error'}} // stale=別の画面が先に保存。最新を読み込んだので、1回だけやり直す
+ f.busy=false;finRes(r)}
+function finRes(r){
+ const f=U.fin,s=VIL.get();
+ if(r.ok||finSeen(s)){finClose();refreshGather();return} // 保存できた/別の画面で もう確認済み → 成功として閉じる
+ if(r.reason==='unknown'||r.reason==='unsure'){startCheck('seen','seen');return}
+ if(r.reason==='abort'){finClose();refreshGather();return} // 完了していない(ありえない状態):何も書かずに閉じる
+ if(f){f.msg=r.reason==='locked'?MSG_LOCK:MSG_FAIL_F}
+ sound('miss');refreshGather()}
+function finAfterCheck(r){ // 保存結果不明のあとの確認(同じ書き込みは くり返さない)
+ const f=U.fin;
+ if(finSeen(VIL.get())){finClose();refreshGather();return}
+ if(f)f.msg=r==='locked'?MSG_LOCK:MSG_FAIL_F;
+ sound('miss');refreshGather()}
 // ルナ先生の案内(状態から毎回つくる。保管庫に関わるものだけ。ほかの段階の案内は、それぞれの段階で)
 function guideInfo(s){
  const idle={m:'ルナ先生の 案内が ここに 出るよ',g:'目標: 準備中',open:null};
@@ -5863,6 +5934,7 @@ function guideInfo(s){
    return{m:`${nm}が いっぱいで 受け取れないよ。${nm}を 使うと 空きが できるよ。`,g:`目標: ${nm}を 使って 空きを 作ろう`,open:'main'}}}}
  if(pend>0)return{m:`受け取り待ちに ${pend}こ あるよ。保管庫を ひらこう。`,g:'目標: 受け取り待ちを 保管庫へ 移そう',open:'main'};
  if(!(t&&!t.done)){const bq=VIL.act.board();if(bq&&QCATS.some(c=>bq[c].items.some(x=>x.state==='done')))return{m:'受け取れる ごほうびが あるよ。掲示板を ひらこう。',g:'目標: 掲示板で ごほうびを 受け取ろう',open:'board'}}
+ if(t&&t.done&&finSeen(s))return{m:'通常・学習の 依頼が ひらいたよ。掲示板を 見てみよう！',g:'目標: 掲示板を 見てみよう',open:'board'}
  return idle}
 function updGuide(s){
  const g=guideInfo(s),m=U.root.querySelector('.vlgd .m'),e=U.root.querySelector('.vlgd .g'),b=U.root.querySelector('.vlgd .vlopen');
@@ -5881,7 +5953,7 @@ function openTest(){
  U.root=document.createElement('div');U.root.id='vilroot';document.body.appendChild(U.root);
  draw();return true}
 function close(){
- if(!U.open)return;U.open=false;clearInterval(U.tick);U.tick=0;stopHold();U.pn=null;if(U.root){U.root.remove();U.root=null}
+ if(!U.open)return;U.open=false;clearInterval(U.tick);U.tick=0;stopHold();U.pn=null;U.fin=null;if(U.root){U.root.remove();U.root=null}
  const app=document.getElementById('app');if(app)app.style.display='';
  try{V=null;HOMEMAP=true;render()}catch(e){}}
 window.VILUI={
@@ -5889,7 +5961,7 @@ window.VILUI={
  openTest,draw,
  goHome:close,
  goBack(){if(U.pn)pnClose();else close()}, // 窓が開いているときは窓を閉じる。閉じているときだけホームへ
- pnOpen,boardOpen,wkNo,wkBuild,wkBuildGo,wkStart,wkCollect,bqCat,bqSel,bqClaim,pnClose,pnGo,pnAll,pnOut,pnDo,hold,hstop:stopHold,stepK,get pn(){return U.pn},guideInfo:()=>guideInfo(VIL.get()),
+ pnOpen,boardOpen,finNext,get fin(){return U.fin},wkNo,wkBuild,wkBuildGo,wkStart,wkCollect,bqCat,bqSel,bqClaim,pnClose,pnGo,pnAll,pnOut,pnDo,hold,hstop:stopHold,stepK,get pn(){return U.pn},guideInfo:()=>guideInfo(VIL.get()),
  tap(id){U.taps[id]=(U.taps[id]||0)+1;if(GITEM[id])gatherTap(id);else if(id==='storage')pnOpen('main');else if(id==='board')boardOpen();else if(id==='workshop')pnOpen('work')}, // 5b:木・岩は採集(判定はVIL.gather)。ほかは5aのまま(記録だけ)
  refresh:refreshGather,get chk(){return U.chk},get toastText(){return U.toast&&U.toast.text},
  tp(n){U.tp=n;if(n===0)U.msg='';draw()},
