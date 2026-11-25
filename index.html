@@ -5233,8 +5233,11 @@ const sxSeen=k=>{try{return localStorage.getItem('elemSx_'+k)==='1'}catch(e){ret
 let SXID=null;
 function sxModal(){const[t,L]=SX[SXID];return`<div class=ov><div class=md style="max-width:420px"><div class="lh${lunaStage()<2?' lhL':''}"><img class=lu src="${lunaImg()}" alt="ルナ先生"><div class=lb><b style="color:#FFEB3B">ルナ先生</b><br>${K(t)}の 説明だよ!</div></div>${L.map(x=>`<div class=ht style="font-size:15px;margin:8px 0">・${K(x)}</div>`).join('')}<div style="text-align:center;margin-top:10px"><button class=b onclick="sxOk()">${K('わかった!')}</button></div></div></div>`}
 function sxOk(){const id=SXID;try{localStorage.setItem('elemSx_'+id,'1')}catch(e){}SXID=null;V=null;homeGo(id)}
+let SXCAVE=false; // 5g:洞窟の説明(旧町)から進んだときに、新しい町へ入らないための目印
 function homeGo(id){HMSG='';
-  const sk=id==='cave'?'town':id;if(SX[sk]&&!sxSeen(sk)&&!((sk==='town')&&!tabOpen('town'))){SXID=sk;view('sx');return}
+  if(id==='town'&&!SXCAVE&&tabOpen('town')&&window.VILUI&&VILUI.enter())return; // 5g:ホームの「町づくり」→新しい町(洞窟は従来どおり旧町)
+  SXCAVE=false;
+  const sk=id==='cave'?'town':id;if(SX[sk]&&!sxSeen(sk)&&!((sk==='town')&&!tabOpen('town'))){SXCAVE=(id==='cave');SXID=sk;view('sx');return}
   if(id==='word'){HOMEMAP=false;SEC='word';if(PLAY==='card')PLAY='flash';if(GAME==='element')setGame('hira');else render();return}
   if(id==='elem'){HOMEMAP=false;SEC='element';PLAY='card';if(GAME!=='element')setGame('element');else render();return}
   if(id==='town'||id==='cave'){if(!tabOpen('town')){HMSG='世界樹が Lv2に なると 町が ひらくよ';render();return}townTick();openWorld('town');return}
@@ -5944,6 +5947,26 @@ function updGuide(s){
 function ensureCss(){if(document.getElementById('vil-css'))return;const st=document.createElement('style');st.id='vil-css';st.textContent=CSS;document.head.appendChild(st)}
 function killOpening(){ // オープニングを、保存(elemOpDone)をせずに止める。テスト入口が、既存のキーを書かないため
  try{if(typeof OPS!=='undefined'&&OPS){clearTimeout(OPS.tm);if(OPS.el)OPS.el.remove();OPS=null;if(typeof opMusicStop==='function')opMusicStop()}}catch(e){}}
+// ===== 5g:ホームの「町づくり」ボタンから、新しい町を本番の保存先(elemVil)で開く =====
+// ・世界樹Lv2未満は、ここを直接呼んでも入れない(false を返し、何もしない)
+// ・テスト入口(#vil)で始めたページでは、本番の町は開かない(テストと本番の保存先を混ぜない)
+// ・保存データが こわれている・読めない・保存できないときは、入らない。データは書きかえない(初期データで上書きしない)
+const MSG_E_LOCK='まちの データが よめないよ。データは そのまま のこしてあるから、おうちの人に そうだんしてね。';
+const MSG_E_SAVE='いま ほぞんが できないようなので、まちは ひらけないよ。もういちど ためしてね。';
+const MSG_E_TEST='テスト用の がめんから ひらいているので、ここでは まちを ひらけないよ。ページを よみこみなおしてね。';
+function homeMsg(m){HMSG=m;try{render()}catch(e){}}
+function enter(){
+ if(U.open)return true;
+ if(!tabOpen('town'))return false; // 世界樹Lv2未満:入れない(呼び出し側は、従来の「Lv2になると ひらくよ」を出す)
+ if(VIL.namespace()!==''){homeMsg(MSG_E_TEST);return true}
+ ensureCss();
+ let st=null;try{VIL.init();st=VIL.status()}catch(e){}
+ if(!st||st.locked||st.persisted===false||['ok','fresh','restored'].indexOf(st.status)<0){homeMsg(st&&st.locked?MSG_E_LOCK:MSG_E_SAVE);return true}
+ U.mode='live';U.open=true;U.wk=undefined;U.pn=null;U.fin=null;U.chk=null;U.newSlot=0;U.tp=0;U.msg='';
+ clearInterval(U.tick);U.tick=setInterval(refreshGather,1000);
+ const app=document.getElementById('app');if(app)app.style.display='none';
+ U.root=document.createElement('div');U.root.id='vilroot';document.body.appendChild(U.root);
+ draw();return true}
 function openTest(){
  if(U.open)return true;
  if(!VIL.setNamespace('Test'))return false; // すでに本番の名前で初期化されていたら、切り替えられない→開かない(本番データを守る)
@@ -5953,21 +5976,21 @@ function openTest(){
  U.root=document.createElement('div');U.root.id='vilroot';document.body.appendChild(U.root);
  draw();return true}
 function close(){
- if(!U.open)return;U.open=false;clearInterval(U.tick);U.tick=0;stopHold();U.pn=null;U.fin=null;if(U.root){U.root.remove();U.root=null}
+ if(!U.open)return;U.open=false;clearInterval(U.tick);U.tick=0;stopHold();clearTimeout(U.ctm);U.chk=null;U.pn=null;U.fin=null;if(U.root){U.root.remove();U.root=null}
  const app=document.getElementById('app');if(app)app.style.display='';
  try{V=null;HOMEMAP=true;render()}catch(e){}}
 window.VILUI={
  get open(){return U.open},get mode(){return U.mode},get dbg(){return U.dbg},get taps(){return U.taps},OBJ,VILA,vk,VT,FR,
- openTest,draw,
+ openTest,enter,draw,
  goHome:close,
  goBack(){if(U.pn)pnClose();else close()}, // 窓が開いているときは窓を閉じる。閉じているときだけホームへ
  pnOpen,boardOpen,finNext,get fin(){return U.fin},wkNo,wkBuild,wkBuildGo,wkStart,wkCollect,bqCat,bqSel,bqClaim,pnClose,pnGo,pnAll,pnOut,pnDo,hold,hstop:stopHold,stepK,get pn(){return U.pn},guideInfo:()=>guideInfo(VIL.get()),
  tap(id){U.taps[id]=(U.taps[id]||0)+1;if(GITEM[id])gatherTap(id);else if(id==='storage')pnOpen('main');else if(id==='board')boardOpen();else if(id==='workshop')pnOpen('work')}, // 5b:木・岩は採集(判定はVIL.gather)。ほかは5aのまま(記録だけ)
  refresh:refreshGather,get chk(){return U.chk},get toastText(){return U.toast&&U.toast.text},
- tp(n){U.tp=n;if(n===0)U.msg='';draw()},
- dbgT(){U.dbg=!U.dbg;draw()},
+ tp(n){if(U.mode!=='test')return;U.tp=n;if(n===0)U.msg='';draw()},
+ dbgT(){if(U.mode!=='test')return;U.dbg=!U.dbg;draw()},
  toggleSmall(){U.small=!U.small;draw()},
- erase(){ // テストのデータだけを消す(対象は VIL.eraseTestData の中で、名前の許可リストと照らされる)
+ erase(){ if(U.mode!=='test')return; // テストのデータだけを消す(対象は VIL.eraseTestData の中で、名前の許可リストと照らされる)
   const r=VIL.eraseTestData('ERASE_TEST');
   if(r.ok){VIL.init();U.msg='けしました: '+(r.removed.length?r.removed.join(', '):'(なし)');U.tp=1}else{U.msg='けせませんでした';U.tp=1}
   draw()},
