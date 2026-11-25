@@ -5232,10 +5232,10 @@ const SX={word:['ことばの冒険',['ひらがな・カタカナ・漢字・�
 const sxSeen=k=>{try{return localStorage.getItem('elemSx_'+k)==='1'}catch(e){return false}};
 let SXID=null;
 function sxModal(){const[t,L]=SX[SXID];return`<div class=ov><div class=md style="max-width:420px"><div class="lh${lunaStage()<2?' lhL':''}"><img class=lu src="${lunaImg()}" alt="ルナ先生"><div class=lb><b style="color:#FFEB3B">ルナ先生</b><br>${K(t)}の 説明だよ!</div></div>${L.map(x=>`<div class=ht style="font-size:15px;margin:8px 0">・${K(x)}</div>`).join('')}<div style="text-align:center;margin-top:10px"><button class=b onclick="sxOk()">${K('わかった!')}</button></div></div></div>`}
-function sxOk(){const id=SXID;try{localStorage.setItem('elemSx_'+id,'1')}catch(e){}SXID=null;V=null;homeGo(id)}
-let SXCAVE=false; // 5g:洞窟の説明(旧町)から進んだときに、新しい町へ入らないための目印
+function sxOk(){const id=SXID,cv=SXCAVE;try{localStorage.setItem('elemSx_'+id,'1')}catch(e){}SXID=null;SXCAVE=false;V=null;homeGo(cv?'cave':id)} // 5h:洞窟から来た説明は、閉じたあとも「洞窟」の入口のまま渡す(保存失敗で説明が再表示されても新しい町へ入らない)
+let SXCAVE=false; // 5g/5h:説明窓が洞窟から開かれたことの記憶(説明窓を閉じる sxOk だけが読み、読んだらすぐ消す)
 function homeGo(id){HMSG='';
-  if(id==='town'&&!SXCAVE&&tabOpen('town')&&window.VILUI&&VILUI.enter())return; // 5g:ホームの「町づくり」→新しい町(洞窟は従来どおり旧町)
+  if(id==='town'&&tabOpen('town')&&window.VILUI&&VILUI.enter())return; // 5g:ホームの「町づくり」→新しい町(洞窟は id==='cave' なので従来どおり旧町。5hで目印への依存をやめた)
   SXCAVE=false;
   const sk=id==='cave'?'town':id;if(SX[sk]&&!sxSeen(sk)&&!((sk==='town')&&!tabOpen('town'))){SXCAVE=(id==='cave');SXID=sk;view('sx');return}
   if(id==='word'){HOMEMAP=false;SEC='word';if(PLAY==='card')PLAY='flash';if(GAME==='element')setGame('hira');else render();return}
