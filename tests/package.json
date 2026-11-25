@@ -4,7 +4,11 @@
   "description": "ルナ先生知育ワールド 町づくり(vil-core/vil-ui)の確認スクリプト",
   "scripts": {
     "test:5e": "node vil_5e_workshop.js",
-    "test:diff": "node vil_diff_compare.js"
+    "test:5f": "node vil_5f_complete.js",
+    "test:diff": "node vil_diff_compare.js",
+    "test:all": "bash run_all.sh"
   },
-  "devDependencies": { "playwright": "^1.50.0" }
+  "devDependencies": {
+    "playwright": "1.63.0"
+  }
 }

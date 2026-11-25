@@ -1,4 +1,5 @@
 // vil_diff_compare.js — 前の版(OLD)と今の版(NEW)で、同じ操作をしたときの保存データと画面の文言が一致するかを比べる(22場面)
+// 5f以降:意図した変更(完了カードの表示・tut.seen)は INTENDED として分けて数え、それ以外の差(変えてはいけない既存機能)だけを DIFF とする。
 // 採集・保管庫・受け取り待ち・入れかえ・拡張・掲示板・案内(到着〜依頼)。違いが出た場面だけ DIFF と表示する。
 // 実行: OLD=/path/to/index_5d.html NEW=/path/to/index.html node tests/vil_diff_compare.js
 const {chromium}=require('playwright');
@@ -14,7 +15,7 @@ async function run(file){const b=await chromium.launch();const out=[];
  const snap=async(pg,tag)=>{const r=await pg.evaluate(()=>{const s=VIL.get();const strip=o=>JSON.parse(JSON.stringify(o));
    return{tag:null,items:s.store.items,slots:s.store.slots,pend:s.pend.map(p=>[p.item,p.n,p.from]),tut:s.tut,quest:s.quest,total:s.total,build:s.build,
     panel:(document.querySelector('.vlpn')||{textContent:''}).textContent.replace(/\s+/g,' ').trim(),pv:VILUI.pn&&VILUI.pn.view,bar:(document.querySelector('.vlres')||{textContent:''}).textContent,
-    nt:[...document.querySelectorAll('.vlo.nt')].map(e=>e.dataset.o+':'+e.dataset.n).join(),errs:0}});r.tag=tag;r.errs=pg.errs.length;out.push(r)};
+    nt:[...document.querySelectorAll('.vlo.nt')].map(e=>e.dataset.o+':'+e.dataset.n).join(),fin:!!document.querySelector('.vlfin'),errs:0}});r.tag=tag;r.errs=pg.errs.length;out.push(r)};
  const wt=()=>new Promise(r=>setTimeout(r,760));
  // S1 採集(5b)
  {const {ctx,pg}=await mk();for(const id of ['wood1','wood2','stone1','stone2','wood1']){await pg.click(`[data-h=${id}]`);await pg.waitForTimeout(80);await snap(pg,'S1-'+id)}await adv(pg,31000);await pg.click('[data-h=wood1]');await pg.waitForTimeout(80);await snap(pg,'S1-again');await ctx.close()}
@@ -31,6 +32,12 @@ async function run(file){const b=await chromium.launch();const out=[];
  {const {ctx,pg}=await mk();const g=async t=>{const r=await pg.evaluate(()=>JSON.stringify(VILUI.guideInfo()));out.push({tag:t,guide:r})};
   await g('G-arrive');await pg.click('[data-h=board]');await pg.evaluate(()=>VILUI.pnClose());await g('G-gather0');await pg.evaluate(()=>VIL.commit(s=>{s.total.wood=2}));await g('G-gather2');await pg.evaluate(()=>VIL.commit(s=>{s.total.wood=4}));await g('G-claim');await ctx.close()}
  await b.close();return out}
-(async()=>{const a=await run(OLD),c=await run(NEW);let diff=0;
- for(let i=0;i<a.length;i++){const x=JSON.stringify(a[i]),y=JSON.stringify(c[i]);if(x!==y){diff++;console.log('DIFF',a[i].tag);console.log(' 5d',x.slice(0,400));console.log(' 5e',y.slice(0,400))}}
- console.log('scenarios',a.length,'differences',diff,'errs5e',c.reduce((n,r)=>n+(r.errs||0),0))})()
+(async()=>{const a=await run(OLD),c=await run(NEW);let diff=0,intended=0;
+ // 5fで意図して変わる項目:カードの有無(fin)と、案内文(完了後の seen 済みのときだけ)。ほかは1文字も変わってはいけない
+ const strip=o=>{const r=JSON.parse(JSON.stringify(o));delete r.fin;if(r.tut&&r.tut.seen===undefined)delete r.tut.seen;return r};
+ for(let i=0;i<a.length;i++){const x=JSON.stringify(strip(a[i])),y=JSON.stringify(strip(c[i]));
+  if(c[i].fin&&!(c[i].tut&&c[i].tut.done&&c[i].tut.seen!==true&&!c[i].pv)){diff++;console.log('DIFF(想定外のカード表示)',a[i].tag)}
+  else if(c[i].fin){intended++;console.log('INTENDED(完了カード表示。未確認・窓なし)',a[i].tag)}
+  if(a[i].fin){diff++;console.log('DIFF(旧版にカードがある)',a[i].tag)}
+  if(x!==y){diff++;console.log('DIFF',a[i].tag);console.log(' OLD',x.slice(0,400));console.log(' NEW',y.slice(0,400))}}
+ console.log('scenarios',a.length,'differences',diff,'intended',intended,'errsNEW',c.reduce((n,r)=>n+(r.errs||0),0))})()
