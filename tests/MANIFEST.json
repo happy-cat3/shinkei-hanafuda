@@ -1,14 +1,14 @@
 {
   "target": {
     "file": "index.html",
-    "sha256": "51224529deb7c963492b8fd0548174af5f9e09516ed12c010ecadb8ce5a1098e",
-    "bytes": 17963642,
-    "stage": "町づくり5f 完成版(GitHub未アップロード)"
+    "sha256": "84d0801ab00947395492e4a3eada9cebc68d6cd5b2e4f01e730e9107cd123a78",
+    "bytes": 17965937,
+    "stage": "町づくり5g 完成版(GitHub未アップロード)"
   },
   "base_for_compare": {
-    "stage": "5e 完成版(GitHub 1cb1565 / e11e379 のindex.html)",
-    "sha256": "622bc42f5d351ba4e8ace256c02836ff109a25065e049a662e31ce810f0587f9",
-    "bytes": 17954331
+    "stage": "5f 完成版(GitHub e8d18e4 のindex.html)",
+    "sha256": "51224529deb7c963492b8fd0548174af5f9e09516ed12c010ecadb8ce5a1098e",
+    "bytes": 17963642
   },
   "env": {
     "node": "v22.23.5",
@@ -19,13 +19,15 @@
   },
   "results": {
     "vil_5e_workshop.js": "76 / 76 合格(期待値は変更なし)",
-    "vil_5f_complete.js": "103 / 103 合格",
-    "vil_diff_compare.js": "22場面 差異0・意図した変更1(完了カードの表示)",
-    "log": "run_20261124_222527.txt"
+    "vil_5f_complete.js": "103 / 103 合格(期待値は変更なし)",
+    "vil_5g_home.js": "102 / 102 合格",
+    "vil_diff_compare.js": "22場面 差異0(5fとの比較。意図した変更による差も0=比較場面はテスト入口なので)",
+    "log": "run_20261125_135454.txt"
   },
   "history": {
     "run_20261124_092701.txt": "5e版・作成時",
-    "run_20261124_213316.txt": "5e版・GitHub取得分での再実行(76/76・22場面差異0)"
+    "run_20261124_213316.txt": "5e版・GitHub取得分での再実行",
+    "run_20261124_222527.txt": "5f版・作成時"
   },
-  "note": "旧テスト912項目と旧5e専用142項目は復旧できていない。RECOVERY_STATUS.md 参照。実機スマホ未確認。5f作成中の途中の実行ログ(修正前の版)は、新しい版で置き換えたので保存していない。"
+  "note": "旧テスト912項目と旧5e専用142項目は復旧できていない。package-lock.json は未生成(npmレジストリ未接続)。実機スマホ未確認。5g作成中の途中の実行ログ(修正前)は新しい版で置き換えたため保存していない。"
 }

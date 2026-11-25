@@ -37,7 +37,7 @@ async function run(file){const b=await chromium.launch();const out=[];
  const strip=o=>{const r=JSON.parse(JSON.stringify(o));delete r.fin;if(r.tut&&r.tut.seen===undefined)delete r.tut.seen;return r};
  for(let i=0;i<a.length;i++){const x=JSON.stringify(strip(a[i])),y=JSON.stringify(strip(c[i]));
   if(c[i].fin&&!(c[i].tut&&c[i].tut.done&&c[i].tut.seen!==true&&!c[i].pv)){diff++;console.log('DIFF(想定外のカード表示)',a[i].tag)}
-  else if(c[i].fin){intended++;console.log('INTENDED(完了カード表示。未確認・窓なし)',a[i].tag)}
-  if(a[i].fin){diff++;console.log('DIFF(旧版にカードがある)',a[i].tag)}
+  else if(c[i].fin&&!a[i].fin){intended++;console.log('INTENDED(前の版にはない完了カードが出る。未確認・窓なし)',a[i].tag)}
+  if(a[i].fin&&!c[i].fin){diff++;console.log('DIFF(前の版にあったカードが出なくなった)',a[i].tag)}
   if(x!==y){diff++;console.log('DIFF',a[i].tag);console.log(' OLD',x.slice(0,400));console.log(' NEW',y.slice(0,400))}}
  console.log('scenarios',a.length,'differences',diff,'intended',intended,'errsNEW',c.reduce((n,r)=>n+(r.errs||0),0))})()
