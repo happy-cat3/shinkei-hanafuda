@@ -2,7 +2,7 @@
 // 【注意】2026-11-23の環境入れ替えのあと、会話記録から組み直した確認です。旧テスト vil_test10.js(142項目)とは別物です。
 // 実行: INDEX=/path/to/index.html node tests/vil_5e_workshop.js
 const {chromium}=require('playwright');const fs=require('fs');
-const path=require('path');const INDEX=path.resolve(process.env.INDEX||path.join(__dirname,'..','index.html'));const URL='file://'+INDEX;const SHOTS=process.env.SHOTS||path.join(__dirname,'results','shots');const R=[];const ok=(n,c,x)=>R.push([n,!!c,x===undefined?'':String(x)]);
+const path=require('path');const INDEX=path.resolve(process.env.INDEX||path.join(__dirname,'..','index.html'));const H=require('./lib_http.js');let URL;const SHOTS=process.env.SHOTS||path.join(__dirname,'results','shots');const R=[];const ok=(n,c,x)=>R.push([n,!!c,x===undefined?'':String(x)]);
 const J=JSON.stringify,KJ=/[㐀-鿿]/,sleep=ms=>new Promise(r=>setTimeout(r,ms));let b;
 const ACH0=`s.tut.ach.arrive=true;s.tut.ach.quest=true;s.quest.list.first={p:4,done:true,claimed:true};s.total.wood=4;`;
 const ENOUGH=`s=>{${ACH0}s.store.items.wood=6;s.store.items.stone=4}`,BUILT=w=>`s=>{${ACH0}s.build.workshop=true;s.tut.ach.build=true;s.store.items.wood=${w}}`;
@@ -17,7 +17,7 @@ const OPW=async pg=>{await pg.click('[data-h=workshop]');await pg.waitForTimeout
 const txt=pg=>pg.evaluate(()=>{const e=document.querySelector('.vwk');return e?e.textContent.replace(/\s+/g,' ').trim():''});
 const btn=pg=>pg.evaluate(()=>[...document.querySelectorAll('.vwk button')].filter(e=>!e.classList.contains('x')).map(e=>[e.textContent.trim(),e.disabled]));
 const arm=pg=>pg.evaluate(()=>{window.__a=0;const f=SE.agari;SE.agari=function(){window.__a++;return f.apply(this,arguments)}});const ag=pg=>pg.evaluate(()=>window.__a|0);
-(async()=>{b=await chromium.launch();
+(async()=>{await H.start([INDEX]);URL=H.u(INDEX);b=await chromium.launch();
 // 建築
 {const {ctx,pg}=await fresh(915,412,`s=>{${ACH0}s.store.items.wood=5;s.store.items.stone=3}`);await OPW(pg);let t=await txt(pg);
  ok('A 建築前:不足表示・「たてる」停止・確認にも進めない',/木材\s*5 \/ 6/.test(t)&&t.includes('あと 1こ')&&(await btn(pg))[0][1]===true);
@@ -40,7 +40,7 @@ const arm=pg=>pg.evaluate(()=>{window.__a=0;const f=SE.agari;SE.agari=function()
  ok('D 満杯:板材は受け取り待ち(作業場から)・総数+1・説明と「保管庫を ひらく」',s.pend.length===1&&s.pend[0].from==='work'&&tot(s).plank===t0.plank+1&&t.includes('受け取り待ちに 入ったよ')&&t.includes('保管庫を ひらく'));await ctx.close()}
 // 再読み込み・音
 {const {ctx,pg}=await fresh(915,412,`s=>{${ACH0}s.build.workshop=true;s.tut.ach.build=true;s.work={state:'run',item:'plank',end:Date.now()-5000}}`);
- await pg.reload();await pg.waitForTimeout(500);await arm(pg);await pg.waitForTimeout(2500);
+ await H.reload(pg);await pg.waitForTimeout(500);await arm(pg);await pg.waitForTimeout(2500);
  ok('E1 完成済みで再読み込み:印あり・音なし',(await pg.evaluate(()=>document.querySelector('.vlo[data-o=workshop]').classList.contains('nt')))&&(await ag(pg))===0);await ctx.close()}
 // 安全:保存失敗・不明・連打・2画面
 for(const [kind,setup,act] of [['build',ENOUGH,'build'],['start',BUILT(2),'startPlank'],['collect',`s=>{${ACH0}s.build.workshop=true;s.tut.ach.build=true;s.work={state:'run',item:'plank',end:Date.now()-1000}}`,'collectPlank']]){
@@ -58,7 +58,7 @@ for(const [kind,setup,act] of [['build',ENOUGH,'build'],['start',BUILT(2),'start
   const c0=await pg.evaluate(()=>window.__c);await pg.evaluate(()=>document.querySelectorAll('.vwkgo').forEach(x=>x.click()));await wt();await pg.evaluate(()=>document.querySelectorAll('.vwkgo').forEach(x=>x.click()));
   ok(`G-${kind}-${wf?'書けず':'書けた'} 結果不明:確認中表示・停止・くり返さない`,(u.tt||'').includes('確認しているよ')&&u.chk&&u.dis&&(await pg.evaluate(()=>window.__c))===c0);
   await pg.evaluate(()=>{window.__blk=false;window.__arm=0});for(let i=0;i<40&&await pg.evaluate(()=>!!VILUI.chk);i++)await sleep(150);
-  await pg.reload();await pg.waitForTimeout(800);const s2=await S(pg),t1=tot(s2),d2=kind==='build'?s2.build.workshop:kind==='start'?s2.work.state==='run':s2.done.plank===1;
+  await H.reload(pg);await pg.waitForTimeout(800);const s2=await S(pg),t1=tot(s2),d2=kind==='build'?s2.build.workshop:kind==='start'?s2.work.state==='run':s2.done.plank===1;
   ok(`G-${kind}-${wf?'書けず':'書けた'} 再読み込み後も整合(${wf?'未実行':'1回分のみ'})`,d2===!wf&&(kind==='build'?(wf?t1.wood===t0.wood:t1.wood===t0.wood-6):kind==='start'?(wf?t1.wood===t0.wood:t1.wood===t0.wood-2):(wf?t1.plank===t0.plank:t1.plank===t0.plank+1)));
   if(wf){await pg.evaluate(()=>VILUI.pnOpen('work'));await pg.waitForTimeout(150);if(kind==='build')await pg.click('.vwk .vwkgo');await wt();await pg.click('.vwk .vwkgo');await pg.waitForTimeout(300);const s3=await S(pg);ok(`G-${kind} 未実行から再実行して1回だけ成功`,kind==='build'?s3.build.workshop:kind==='start'?s3.work.state==='run':s3.done.plank===1)}
   ok(`G-${kind}-${wf?'書けず':'書けた'} エラー0`,pg.errs.length===0);await ctx.close()}}
@@ -98,7 +98,7 @@ for(const [w,h] of [[640,300],[780,330],[915,412],[1280,720],[1910,830]]){for(co
 {const REAL={elemVil:'REAL_MARKER',elemVilBk:'REAL_BK',elemVilBad_1:'REAL_BAD',elemKid:'0',elemStamp:'0'};const ctx=await b.newContext({viewport:{width:915,height:412}});const pg=await ctx.newPage();
  await pg.addInitScript(s=>{if(!sessionStorage.getItem('seeded')){for(const k in s)localStorage.setItem(k,s[k]);sessionStorage.setItem('seeded','1')}},REAL);
  await pg.goto(URL);await pg.waitForTimeout(500);const snap=()=>pg.evaluate(()=>{const o={};for(const k of Object.keys(localStorage))o[k]=localStorage.getItem(k);return o});const b0=await snap();
- await pg.goto(URL+'#vil');await pg.waitForTimeout(500);await pg.reload();await pg.waitForTimeout(700);await pg.evaluate(`VIL.commit(${ENOUGH})`);await pg.evaluate(()=>VILUI.draw());
+ await pg.goto(URL+'#vil');await pg.waitForTimeout(500);await H.reload(pg);await pg.waitForTimeout(700);await pg.evaluate(`VIL.commit(${ENOUGH})`);await pg.evaluate(()=>VILUI.draw());
  await pg.click('[data-h=workshop]',{force:true});await pg.click('.vwkgo',{force:true});await wt();await pg.click('.vwkgo',{force:true});await pg.waitForTimeout(300);
  const a=await snap();const chg=Object.keys(a).filter(k=>!k.startsWith('elemVilTest')&&a[k]!==b0[k]);ok('N 本番キー・学習データは1文字も変わらない',!chg.length&&a.elemVil==='REAL_MARKER'&&a.elemVilBk==='REAL_BK');await ctx.close()}
-await b.close();let f=0;R.forEach(([n,c,x])=>{if(!c)f++;console.log((c?'PASS ':'FAIL ')+n+(c?'':'  '+x))});console.log('failed:',f,'/',R.length)})();
+await b.close();H.finish(R);await H.stop();let f=0;R.forEach(([n,c,x])=>{if(!c)f++;console.log((c?'PASS ':'FAIL ')+n+(c?'':'  '+x))});console.log('failed:',f,'/',R.length)})();

@@ -2,13 +2,13 @@
 // 5f以降:意図した変更(完了カードの表示・tut.seen)は INTENDED として分けて数え、それ以外の差(変えてはいけない既存機能)だけを DIFF とする。
 // 採集・保管庫・受け取り待ち・入れかえ・拡張・掲示板・案内(到着〜依頼)。違いが出た場面だけ DIFF と表示する。
 // 実行: OLD=/path/to/index_5d.html NEW=/path/to/index.html node tests/vil_diff_compare.js
-const {chromium}=require('playwright');
+const {chromium}=require('playwright');const H=require('./lib_http.js');
 const path=require('path');const OLD=path.resolve(process.env.OLD||'');const NEW=path.resolve(process.env.NEW||path.join(__dirname,'..','index.html'));const BASE=1800000000000;
 async function run(file){const b=await chromium.launch();const out=[];
  const mk=async(setup)=>{const ctx=await b.newContext({viewport:{width:915,height:412}});const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message));
   const oc=pg.click.bind(pg);pg.click=(s,o)=>oc(s,Object.assign({force:true},o));
   await pg.addInitScript(B=>{window.__t=B;},BASE);
-  await pg.goto('file://'+file+'#vil');await pg.waitForTimeout(700);
+  await pg.goto(H.u(file)+'#vil');await pg.waitForTimeout(700);
   await pg.evaluate(B=>{window.__o=0;VIL.now=()=>B+window.__o},BASE);
   if(setup){await pg.evaluate(`VIL.commit(${setup})`);await pg.evaluate(()=>VILUI.draw())}return{ctx,pg}};
  const adv=(pg,ms)=>pg.evaluate(ms=>{window.__o+=ms;VILUI.refresh()},ms);
@@ -32,7 +32,7 @@ async function run(file){const b=await chromium.launch();const out=[];
  {const {ctx,pg}=await mk();const g=async t=>{const r=await pg.evaluate(()=>JSON.stringify(VILUI.guideInfo()));out.push({tag:t,guide:r})};
   await g('G-arrive');await pg.click('[data-h=board]');await pg.evaluate(()=>VILUI.pnClose());await g('G-gather0');await pg.evaluate(()=>VIL.commit(s=>{s.total.wood=2}));await g('G-gather2');await pg.evaluate(()=>VIL.commit(s=>{s.total.wood=4}));await g('G-claim');await ctx.close()}
  await b.close();return out}
-(async()=>{const a=await run(OLD),c=await run(NEW);let diff=0,intended=0;
+(async()=>{await H.start([OLD,NEW]);const a=await run(OLD),c=await run(NEW);let diff=0,intended=0;
  // 5fで意図して変わる項目:カードの有無(fin)と、案内文(完了後の seen 済みのときだけ)。ほかは1文字も変わってはいけない
  const strip=o=>{const r=JSON.parse(JSON.stringify(o));delete r.fin;if(r.tut&&r.tut.seen===undefined)delete r.tut.seen;return r};
  for(let i=0;i<a.length;i++){const x=JSON.stringify(strip(a[i])),y=JSON.stringify(strip(c[i]));
@@ -40,4 +40,4 @@ async function run(file){const b=await chromium.launch();const out=[];
   else if(c[i].fin&&!a[i].fin){intended++;console.log('INTENDED(前の版にはない完了カードが出る。未確認・窓なし)',a[i].tag)}
   if(a[i].fin&&!c[i].fin){diff++;console.log('DIFF(前の版にあったカードが出なくなった)',a[i].tag)}
   if(x!==y){diff++;console.log('DIFF',a[i].tag);console.log(' OLD',x.slice(0,400));console.log(' NEW',y.slice(0,400))}}
- console.log('scenarios',a.length,'differences',diff,'intended',intended,'errsNEW',c.reduce((n,r)=>n+(r.errs||0),0))})()
+ console.log('scenarios',a.length,'differences',diff,'intended',intended,'errsNEW',c.reduce((n,r)=>n+(r.errs||0),0));console.log(H.info());await H.stop()})()

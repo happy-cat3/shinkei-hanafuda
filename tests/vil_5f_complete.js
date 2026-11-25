@@ -3,7 +3,7 @@
 // 【注意】旧テスト(912項目・5e専用142項目)のスクリプトは復旧できていません。これは5fのために新しく作ったものです。
 // 本番の保存先(elemVil / elemVilBk / elemVilBad_*)は、#vil の入口では読まず・書かないことも確かめます。
 const {chromium}=require('playwright');const path=require('path');
-const INDEX=path.resolve(process.env.INDEX||path.join(__dirname,'..','index.html'));const URL='file://'+INDEX;
+const INDEX=path.resolve(process.env.INDEX||path.join(__dirname,'..','index.html'));const H=require('./lib_http.js');let URL;
 const OLD=process.env.OLD?path.resolve(process.env.OLD):'';
 const SHOTS=process.env.SHOTS||path.join(__dirname,'results','shots');
 const R=[];const ok=(n,c,x)=>R.push([n,!!c,x===undefined?'':String(x)]);
@@ -23,7 +23,7 @@ const ftxt=pg=>pg.evaluate(()=>{const e=document.querySelector('.vlfin');return 
 const wt=()=>sleep(760);
 const store=pg=>pg.evaluate(()=>{const o={};for(const k of Object.keys(localStorage))o[k]=localStorage.getItem(k);return o});
 const rest=s=>{const r=JSON.parse(JSON.stringify(s));delete r.rev;delete r.saved;if(r.tut)delete r.tut.seen;return r};
-(async()=>{b=await chromium.launch();
+(async()=>{await H.start([INDEX,OLD]);URL=H.u(INDEX);b=await chromium.launch();
 
 // ---- 表示内容 ----
 {const {ctx,pg}=await fresh(915,412,DONE);const t=await ftxt(pg);
@@ -48,7 +48,7 @@ const rest=s=>{const r=JSON.parse(JSON.stringify(s));delete r.rev;delete r.saved
  ok('B3 「つぎへ」のあと・確認済みでは鳴らない',(await ag(pg))===1&&(await card(pg))===0);
  await pg.evaluate(()=>VILUI.pnOpen('board'));await pg.waitForTimeout(200);await pg.click('.vbqr[data-q=review]');await pg.waitForTimeout(200);
  ok('B4 ふりかえりでは鳴らない',(await ag(pg))===1);await ctx.close()}
-{const {ctx,pg}=await fresh(915,412,DONE);await pg.reload();await pg.waitForTimeout(900);
+{const {ctx,pg}=await fresh(915,412,DONE);await H.reload(pg);await pg.waitForTimeout(900);
  ok('B5 未確認のまま再読み込み → 再表示される',(await card(pg))===1);await ctx.close()}
 {const {ctx,pg}=await fresh(915,412,DONE,()=>{window.__au=0;const f=window.audio;window.audio=function(){window.__au++;return f.apply(this,arguments)};mute=true});
  ok('B6 消音設定を尊重(消音中は音を作らない)',(await card(pg))===1&&(await pg.evaluate(()=>window.__au))===0);await ctx.close()}
@@ -60,7 +60,7 @@ const rest=s=>{const r=JSON.parse(JSON.stringify(s));delete r.rev;delete r.saved
  ok('C2 「つぎへ」→ tut.seen===true が保存され、カードが閉じる',s1.tut.seen===true&&(await card(pg))===0&&await pg.evaluate(()=>{const d=VIL.decode(localStorage.getItem(VIL.KEY));return d.ok&&d.s.tut.seen===true}));
  ok('C3 tut.done と他の保存データは変わらない・報酬(資材・結晶・実績・replay)なし',J(rest(s1))===J(rest(s0))&&s1.tut.done===true&&s1.tut.replay===false&&J(s1.store)===J(s0.store)&&J(s1.total)===J(s0.total));
  const chg=Object.keys(st1).filter(k=>!k.startsWith('elemVilTest')&&st1[k]!==st0[k]);ok('C4 本番キー・学習データは変わらない',chg.length===0&&!('elemVil' in st1));
- await pg.reload();await pg.waitForTimeout(900);ok('C5 再読み込み・再ログイン後は自動表示しない(音も鳴らない)',(await card(pg))===0&&(await ag(pg))===0&&(await S(pg)).tut.seen===true);
+ await H.reload(pg);await pg.waitForTimeout(900);ok('C5 再読み込み・再ログイン後は自動表示しない(音も鳴らない)',(await card(pg))===0&&(await ag(pg))===0&&(await S(pg)).tut.seen===true);
  ok('C6 完了後の案内文(指定)',(await pg.locator('.vlgd .m').innerText())==='通常・学習の 依頼が ひらいたよ。掲示板を 見てみよう！');
  ok('C7 解放専用の赤い印は付かない(掲示板・保管庫・作業場とも)',await pg.evaluate(()=>document.querySelectorAll('.vlo.nt').length===0));await ctx.close()}
 {const {ctx,pg}=await fresh(915,412,NOTDONE);
@@ -75,7 +75,7 @@ for(const v of ['x',1,0,'true',null,{},[],false]){const {ctx,pg}=await fresh(915
  ok(`E 不正な seen(${J(v)})は未確認 → カードが出て、「つぎへ」で true になる`,shown&&(await S(pg)).tut.seen===true&&(await card(pg))===0);await ctx.close()}
 {const {ctx,pg}=await fresh(915,412,`s=>{${ACHALL}s.tut.done=true;s.tut.seen=true}`);ok('E2 seen===true なら出ない',(await card(pg))===0&&(await ag(pg))===0);await ctx.close()}
 // 途中終了
-{const {ctx,pg}=await fresh(915,412,DONE);await pg.reload();await pg.waitForTimeout(900);ok('F1 つぎへ前に終了(再読み込み)→ 次回また表示',(await card(pg))===1&&(await S(pg)).tut.seen===undefined);
+{const {ctx,pg}=await fresh(915,412,DONE);await H.reload(pg);await pg.waitForTimeout(900);ok('F1 つぎへ前に終了(再読み込み)→ 次回また表示',(await card(pg))===1&&(await S(pg)).tut.seen===undefined);
  // 注:テスト入口(#vil)は、町を出たあとの再入場を再読み込みなしでは行えない(5aからの仕様)ので、再入場の確認は再読み込みで代える
  
  await ctx.close()}
@@ -103,14 +103,14 @@ for(const wf of [false,true]){const {ctx,pg}=await fresh(915,412,DONE);const s0=
  if(!wf)ok('I-書けた3 確認できたら確認済みとして閉じる',(await card(pg))===0&&(await S(pg)).tut.seen===true);
  else{ok('I-書けず3 書けていなかったと確認 → カード維持・失敗の案内',(await card(pg))===1&&(await S(pg)).tut.seen===undefined&&/うまく保存できなかったよ/.test(await ftxt(pg)));
   await wt();await pg.click('.vlfin .fb');await pg.waitForTimeout(400);ok('I-書けず4 再試行で1回だけ成功',(await S(pg)).tut.seen===true&&(await card(pg))===0)}
- await pg.reload();await pg.waitForTimeout(900);
+ await H.reload(pg);await pg.waitForTimeout(900);
  ok(`I-${wf?'書けず':'書けた'}5 再読み込み後も整合(確認済み・カードなし・資材そのまま)`,(await S(pg)).tut.seen===true&&(await card(pg))===0&&J((await S(pg)).store)===J(s0.store));ok(`I-${wf?'書けず':'書けた'}6 エラー0`,pg.errs.length===0);await ctx.close()}
 // 結果不明のまま再読み込み(書けたか・書けなかったか分からないままページを閉じた)
 for(const wf of [false,true]){const {ctx,pg}=await fresh(915,412,DONE);
  await pg.evaluate(w=>{const os=Storage.prototype.setItem,og=Storage.prototype.getItem;window.__arm=1;
   if(w)Storage.prototype.setItem=function(k,v){if(k==='elemVilTest'&&window.__arm>0)throw new Error('w');return os.apply(this,arguments)};
   Storage.prototype.getItem=function(k){if(k==='elemVilTest'){if(window.__arm===1)window.__arm=2;else if(window.__arm===2)throw new Error('r')}return og.apply(this,arguments)}},wf);
- await wt();await pg.click('.vlfin .fb');await pg.waitForTimeout(300);await pg.evaluate(()=>{window.__arm=0});await pg.reload();await pg.waitForTimeout(900);
+ await wt();await pg.click('.vlfin .fb');await pg.waitForTimeout(300);await pg.evaluate(()=>{window.__arm=0});await H.reload(pg);await pg.waitForTimeout(900);
  const sv=(await S(pg)).tut.seen===true;ok(`J-${wf?'書けず':'書けた'} 結果不明のまま再読み込み:${wf?'未確認なのでカード再表示':'確認済みなのでカードなし'}・二重なし`,wf?(!sv&&(await card(pg))===1):(sv&&(await card(pg))===0));await ctx.close()}
 // 保存が確定するまで新しくは出さない
 {const {ctx,pg}=await fresh(915,412,NOTDONE);await pg.evaluate(()=>VILUI.pnOpen('main'));await pg.evaluate(()=>VIL.commit(s=>{s.tut.done=true}));
@@ -187,13 +187,13 @@ for(const [w,h] of [[640,300],[780,330],[915,412],[1280,720],[1910,830]]){for(co
 if(OLD){const ctx=await b.newContext({viewport:{width:915,height:412}});const pg=await ctx.newPage();pg.errs=[];pg.on('pageerror',e=>pg.errs.push(e.message));
  await pg.goto(URL+'#vil');await pg.waitForTimeout(600);await pg.evaluate(`VIL.commit(${DONE})`);await pg.evaluate(()=>VILUI.draw());await pg.click('.vlfin .fb');await pg.waitForTimeout(400);
  const raw=await pg.evaluate(()=>localStorage.getItem('elemVilTest'));
- const pg2=await ctx.newPage();pg2.errs=[];pg2.on('pageerror',e=>pg2.errs.push(e.message));await pg2.goto('file://'+OLD+'#vil');await pg2.waitForTimeout(700);
- await pg2.evaluate(r=>{localStorage.setItem('elemVilTest',r)},raw);await pg2.reload();await pg2.waitForTimeout(800);
+ const pg2=await ctx.newPage();pg2.errs=[];pg2.on('pageerror',e=>pg2.errs.push(e.message));await pg2.goto(H.u(OLD)+'#vil');await pg2.waitForTimeout(700);
+ await pg2.evaluate(r=>{localStorage.setItem('elemVilTest',r)},raw);await H.reload(pg2);await pg2.waitForTimeout(800);
  const st=await pg2.evaluate(()=>VIL.status());const s=await pg2.evaluate(()=>VIL.get());ok('R1 前の版:seen つきの保存データを正常に読める',st.status==='ok'&&s&&s.tut.seen===true&&pg2.errs.length===0,J(st));
  const r=await pg2.evaluate(()=>{VIL.now=()=>Date.now()+1e6;return VIL.act.gather('wood1')});const s2=await pg2.evaluate(()=>VIL.get());ok('R2 前の版で保存しても seen が消えない',r.ok&&s2.tut.seen===true);await ctx.close()}
 // ---- 本番キー ----
 {const ctx=await b.newContext({viewport:{width:915,height:412}});const pg=await ctx.newPage();await pg.goto(URL);await pg.waitForTimeout(500);
  await pg.evaluate(()=>{localStorage.setItem('elemVil','REAL_MARKER');localStorage.setItem('elemVilBk','REAL_BK')});const b0=await store(pg);
- await pg.goto(URL+'#vil');await pg.waitForTimeout(500);await pg.reload();await pg.waitForTimeout(700);await pg.evaluate(`VIL.commit(${DONE})`);await pg.evaluate(()=>VILUI.draw());await pg.click('.vlfin .fb');await pg.waitForTimeout(500);
+ await pg.goto(URL+'#vil');await pg.waitForTimeout(500);await H.reload(pg);await pg.waitForTimeout(700);await pg.evaluate(`VIL.commit(${DONE})`);await pg.evaluate(()=>VILUI.draw());await pg.click('.vlfin .fb');await pg.waitForTimeout(500);
  const a=await store(pg);const chg=Object.keys(a).filter(k=>!k.startsWith('elemVilTest')&&a[k]!==b0[k]);ok('S 本番キー(elemVil・elemVilBk)・学習データは1文字も変わらない',!chg.length&&a.elemVil==='REAL_MARKER'&&a.elemVilBk==='REAL_BK');await ctx.close()}
-await b.close();let f=0;R.forEach(([n,c,x])=>{if(!c)f++;console.log((c?'PASS ':'FAIL ')+n+(c?'':'  '+x))});console.log('failed:',f,'/',R.length)})();
+await b.close();H.finish(R);await H.stop();let f=0;R.forEach(([n,c,x])=>{if(!c)f++;console.log((c?'PASS ':'FAIL ')+n+(c?'':'  '+x))});console.log('failed:',f,'/',R.length)})();

@@ -6,7 +6,9 @@
     "test:5e": "node vil_5e_workshop.js",
     "test:5f": "node vil_5f_complete.js",
     "test:diff": "node vil_diff_compare.js",
-    "test:all": "bash run_all.sh"
+    "test:all": "bash run_all.sh",
+    "test:5g": "node vil_5g_home.js",
+    "test:5h": "node vil_5h_sx.js && node vil_5h_reload.js"
   },
   "devDependencies": {
     "playwright": "1.63.0"

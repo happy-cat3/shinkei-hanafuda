@@ -3,7 +3,7 @@
 // 【注意】旧テスト(912項目・5e専用142項目)のスクリプトは復旧できていません。これは5gのために新しく作ったものです。
 // 【隔離】本番の保存先(elemVil など)の確認は、毎回あたらしい ブラウザの入れ物(context)で行います。実際の利用者データには触れません。
 const {chromium}=require('playwright');const path=require('path');
-const INDEX=path.resolve(process.env.INDEX||path.join(__dirname,'..','index.html'));const URL='file://'+INDEX;
+const INDEX=path.resolve(process.env.INDEX||path.join(__dirname,'..','index.html'));const H=require('./lib_http.js');let URL;
 const OLD=process.env.OLD?path.resolve(process.env.OLD):'';
 const SHOTS=process.env.SHOTS||path.join(__dirname,'results','shots');
 const R=[];const ok=(n,c,x)=>R.push([n,!!c,x===undefined?'':String(x)]);
@@ -24,7 +24,7 @@ const TW='.hb .tw';
 const opened=pg=>pg.evaluate(()=>VILUI.open),mode=pg=>pg.evaluate(()=>VILUI.mode);
 const backHome=async pg=>{await pg.click('.vlbar .vlb');await pg.waitForTimeout(400)};
 const SNAP=()=>({HOMEMAP,SEC,PLAY,GAME,V:V||null,FT:typeof FT==='undefined'?null:FT,HMSG,SXID:typeof SXID==='undefined'?null:SXID,vil:VILUI.open});
-(async()=>{b=await chromium.launch();
+(async()=>{await H.start([INDEX,OLD]);URL=H.u(INDEX);b=await chromium.launch();
 
 // ---- 世界樹 Lv1 / Lv2 の解放条件 ----
 {const {ctx,pg}=await home(915,412,1);const lv=await pg.evaluate(()=>wlv());await pg.click(TW);await pg.waitForTimeout(300);
@@ -73,12 +73,12 @@ const SNAP=()=>({HOMEMAP,SEC,PLAY,GAME,V:V||null,FT:typeof FT==='undefined'?null
  await pg.screenshot({path:path.join(SHOTS,'5g_home_after_back_915x412.png')});ok('E5 エラー0',pg.errs.length===0);await ctx.close()}
 // ホームの他のボタンへの影響(5f版との比較:町づくりボタン以外は同じ結果)
 if(OLD){for(const lv of [1,2])for(const seen of [false,true])for(const id of ['word','elem','spirit','cave','book']){
-  const res=[];for(const f of [('file://'+OLD),URL]){const {ctx,pg}=await home(915,412,lv,seen?{elemSx_word:'1',elemSx_elem:'1',elemSx_spirit:'1',elemSx_town:'1'}:null,f);
+  const res=[];for(const f of [H.u(OLD),URL]){const {ctx,pg}=await home(915,412,lv,seen?{elemSx_word:'1',elemSx_elem:'1',elemSx_spirit:'1',elemSx_town:'1'}:null,f);
    await pg.evaluate(x=>homeGo(x),id);await pg.waitForTimeout(400);res.push(J(await pg.evaluate(SNAP)));await ctx.close()}
   ok(`F ホームの「${id}」(Lv${lv}・説明${seen?'済み':'未'}):5f版と同じ動き`,res[0]===res[1],res.join('  ≠  '))}
- {const res=[];for(const f of [('file://'+OLD),URL]){const {ctx,pg}=await home(915,412,1,null,f);await pg.evaluate(()=>homeGo('town'));await pg.waitForTimeout(300);res.push(J(await pg.evaluate(SNAP)));await ctx.close()}
+ {const res=[];for(const f of [H.u(OLD),URL]){const {ctx,pg}=await home(915,412,1,null,f);await pg.evaluate(()=>homeGo('town'));await pg.waitForTimeout(300);res.push(J(await pg.evaluate(SNAP)));await ctx.close()}
   ok('F2 町づくりボタン(Lv1):5f版と同じ(鍵の案内)',res[0]===res[1],res.join(' ≠ '))}
- {const res=[];for(const f of [('file://'+OLD),URL]){const {ctx,pg}=await home(915,412,2,{elemSx_town:'1'},f);await pg.evaluate(()=>homeGo('town'));await pg.waitForTimeout(500);res.push(await pg.evaluate(SNAP));await ctx.close()}
+ {const res=[];for(const f of [H.u(OLD),URL]){const {ctx,pg}=await home(915,412,2,{elemSx_town:'1'},f);await pg.evaluate(()=>homeGo('town'));await pg.waitForTimeout(500);res.push(await pg.evaluate(SNAP));await ctx.close()}
   ok('F3 町づくりボタン(Lv2)の変更点=意図した変更だけ:5f版は旧町・今回は新しい町',res[0].V==='farm'&&res[0].FT==='town'&&!res[0].vil&&res[1].vil===true&&res[1].V===null,J(res))}}
 
 // ---- 本番とテストの分離 ----
@@ -116,7 +116,7 @@ for(const [name,keys,expectOpen] of [
 // ---- 再入場・再読み込み・複数画面で進行が消えない ----
 {const {ctx,pg}=await home(915,412,2);await pg.click(TW);await pg.waitForTimeout(400);await pg.evaluate(()=>VIL.act.gather('wood1'));await pg.evaluate(()=>VIL.act.gather('stone1'));
  const a=await pg.evaluate(()=>JSON.stringify(VIL.get()));await backHome(pg);await pg.click(TW);await pg.waitForTimeout(400);const b1=await pg.evaluate(()=>JSON.stringify(VIL.get()));
- ok('J1 戻って再入場:資材・時刻・進行がそのまま',a===b1);await pg.reload();await pg.waitForTimeout(900);await pg.evaluate(()=>{try{opEnd()}catch(e){}});await pg.waitForTimeout(1300);
+ ok('J1 戻って再入場:資材・時刻・進行がそのまま',a===b1);await H.reload(pg);await pg.waitForTimeout(900);await pg.evaluate(()=>{try{opEnd()}catch(e){}});await pg.waitForTimeout(1300);
  await pg.evaluate(()=>{if(wlv()<2){W.tree=TREE_XP[1];saveW()}HOMEMAP=true;render()});await pg.click(TW);await pg.waitForTimeout(500);const c=JSON.parse(await pg.evaluate(()=>JSON.stringify(VIL.get())));
  ok('J2 再読み込み後に入りなおしても、資材・進行が残る(初期化・重複なし)',c.store.items.wood===2&&c.store.items.stone===2&&c.total.wood===2&&c.total.stone===2&&c.rev===JSON.parse(a).rev);await ctx.close()}
 {const ctx=await ctxNew(915,412);const p1=await open(ctx,2),p2=await open(ctx,2);
@@ -142,7 +142,7 @@ for(const [name,keys,expectOpen] of [
  await pg.evaluate(()=>VILUI.goHome());await pg.waitForTimeout(300);await pg.click(TW);await pg.waitForTimeout(600);ok('M2 確認前に戻って再入場:また出る',(await pg.locator('.vlfin').count())===1);
  await pg.click('.vlfin .fb');await pg.waitForTimeout(500);await backHome(pg);await pg.click(TW);await pg.waitForTimeout(600);
  ok('M3 「つぎへ」のあとは、戻って再入場しても出ない・seen と done が残る',(await pg.locator('.vlfin').count())===0&&await pg.evaluate(()=>VIL.get().tut.seen===true&&VIL.get().tut.done===true));
- await pg.reload();await pg.waitForTimeout(800);await pg.evaluate(()=>{try{opEnd()}catch(e){}});await pg.waitForTimeout(1300);await pg.evaluate(()=>{if(wlv()<2){W.tree=TREE_XP[1];saveW()}HOMEMAP=true;render()});await pg.click(TW);await pg.waitForTimeout(600);
+ await H.reload(pg);await pg.waitForTimeout(800);await pg.evaluate(()=>{try{opEnd()}catch(e){}});await pg.waitForTimeout(1300);await pg.evaluate(()=>{if(wlv()<2){W.tree=TREE_XP[1];saveW()}HOMEMAP=true;render()});await pg.click(TW);await pg.waitForTimeout(600);
  ok('M4 再読み込み後も出ない・案内が残る',(await pg.locator('.vlfin').count())===0&&(await pg.locator('.vlgd .m').innerText()).includes('掲示板'));
  ok('M5 通常・学習の解放は tut.done どおり',await pg.evaluate(()=>VIL.act.board().normal.open&&VIL.act.board().learn.open));await ctx.close()}
 
@@ -165,4 +165,4 @@ for(const [w,h] of SIZES){const {ctx,pg}=await home(w,h,2);
  await pg.evaluate(()=>{KID=false;render()});await pg.waitForTimeout(300);ok('Q2 漢字表示に戻せる',await pg.evaluate(()=>/依頼/.test(document.querySelector('.vlgd').innerText)));await ctx.close()}
 {const {ctx,pg}=await home(412,915,2);const rot=await pg.evaluate(()=>{const e=document.getElementById('rot');return e?getComputedStyle(e).display:'none'});await pg.evaluate(()=>homeGo('town'));await pg.waitForTimeout(400);
  const rot2=await pg.evaluate(()=>{const e=document.getElementById('rot');return e?getComputedStyle(e).display:'none'});ok('R 縦向き:従来の「横向きにしてね」の案内が出る(町を開いても同じ)',rot!=='none'&&rot2!=='none',J([rot,rot2]));await ctx.close()}
-await b.close();let f=0;R.forEach(([n,c,x])=>{if(!c)f++;console.log((c?'PASS ':'FAIL ')+n+(c?'':'  '+x))});console.log('failed:',f,'/',R.length)})();
+await b.close();H.finish(R);await H.stop();let f=0;R.forEach(([n,c,x])=>{if(!c)f++;console.log((c?'PASS ':'FAIL ')+n+(c?'':'  '+x))});console.log('failed:',f,'/',R.length)})();
